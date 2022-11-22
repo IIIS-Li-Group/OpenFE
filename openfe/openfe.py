@@ -111,8 +111,8 @@ class openfe:
         pass
 
     def fit(self,
-            data, label,
-            task=None,
+            data: pd.DataFrame, label: pd.DataFrame,
+            task: str = None,
             train_index=None,
             val_index=None,
             candidate_features_list=None,
@@ -129,6 +129,57 @@ class openfe:
             n_repeats=1,
             n_jobs=1,
             seed=1):
+        """ Generate new features by the algorithm of OpenFE
+        :param data: pd.DataFrame, the input data
+        :param label: pd.DataFrame, the target
+        :param task: 'classification' or 'regression', if None, label with n_unique_values less than 20
+                        will be set to classification, else regression.
+        :param train_index: the index of the data for training purposes.
+        :param val_index: the index of the data for validation purposes. If train_index or val_index is None,
+                            we split the data into 0.8 (train) and 0.2 (val). It is recommended to pass in the index
+                            if the data has time series property.
+        :param candidate_features_list: the candidate features list for filtering. If None, it will be generated
+                                        automatically, and users can define their candidate features list according to
+                                        their prior knowledge.
+        :param init_scores: the initial scores for feature boosting. Please see our paper for more details. If None,
+                            we generate initial scores by 5-fold cross-validation.
+        :param categorical_features: a list of categorical features. If None, we detect categorical features by using
+                                     data.select_dtypes(exclude=np.number).columns.to_list().
+        :param metric: The metric for evaluating the performance of new features in feature boosting. Currently
+                        support ['binary_logloss', 'multi_logloss', 'auc', 'rmse']. The default metric is
+                        'binary_logloss' for binary-classification, 'multi_logloss' for multi-classification,
+                        and 'rmse' for regression tasks.
+        :param drop_columns: A list of columns you would like to drop when building the LightGBM in stage2.
+                             These columns will still be used to generate candidate_features_list.
+        :param n_data_blocks: The number of data blocks for successive feature-wise halving. See more details in our
+                                paper. Should be 2^n (e.g., 1, 2, 4, 8, 16, 32, ...). Larger values for faster speed,
+                                but may hurt the overall performance, especially when there are many useful
+                                candidate features.
+        :param min_candidate_features: The minimum number of candidate features after successive feature-wise halving.
+                                        It is used to early-stop successive feature-wise halving. When the number of
+                                        candidate features is smaller than min_candidate_features, successive
+                                        feature-wise halving will stop immediately.
+        :param feature_boosting: Whether to use feature boosting. See more details in our paper.
+                                 If False, the init_scores will be set the same as the default values in LightGBM.
+        :param stage1_metric: The metric used for evaluating the features in stage1. Currently support
+                              ['predictive', 'corr', 'mi']. 'predictive' is the method described in the paper.
+                              'corr' is the Pearson correlation between the feature and the target.
+                              'mi' is the mutual information between the feature and the target.
+                              It is recommended to use the default 'predictive'.
+        :param stage2_metric: The feature importance used to rank the features in stage2. Currently support
+                              ['gain_importance', 'permutation'].
+                              'gain_importance' is the same as the importance in LightGBM.
+                              'permutation' is another feature importance method. It is sometimes better than
+                              gain importance, but requires much more computational time.
+        :param stage2_params: The parameters for training LightGBM in stage2.
+        :param is_stage1: Whether to use successive feature-wise halving to eliminate candidate features. If False,
+                            all the candidate features are calculated and used to train the LightGBM in stage2,
+                            which may require a large amount of memory as well as computational time.
+        :param n_repeats: The number of repeats in permutation. Only useful when stage2_metric is set to 'permutation'.
+        :param n_jobs: The number of processes used for feature calculation and evaluation.
+        :param seed: Random number seed. This will seed everything.
+        :return: a list of new features, sorted by their importance (from most important to least important).
+        """
         assert stage2_metric in ['gain_importance', 'permutation']
         assert stage1_metric in ['predictive', 'corr', 'mi']
         if metric: assert metric in ['binary_logloss', 'multi_logloss', 'auc', 'rmse']
@@ -159,7 +210,7 @@ class openfe:
         self.train_index, self.val_index = self.get_index(train_index, val_index)
         self.init_scores = self.get_init_score(init_scores)
 
-        print("The number of candidate features", len(self.candidate_features_list))
+        print("The number of candidate features is", len(self.candidate_features_list))
 
         self.candidate_features_list = self.stage1_select()
         self.new_features_scores_list = self.stage2_select()
@@ -172,7 +223,11 @@ class openfe:
 
     def get_index(self, train_index, val_index):
         if train_index is None or val_index is None:
-            _, _, train_y, test_y = train_test_split(self.data, self.label, test_size=0.2, random_state=self.seed)
+            if self.task == 'classification':
+                _, _, train_y, test_y = train_test_split(self.data, self.label, stratify=self.label,
+                                                         test_size=0.2, random_state=self.seed)
+            else:
+                _, _, train_y, test_y = train_test_split(self.data, self.label, test_size=0.2, random_state=self.seed)
             return train_y.index, test_y.index
         else:
             return train_index, val_index
@@ -205,8 +260,6 @@ class openfe:
                 self.task = 'classification'
             else:
                 self.task = 'regression'
-            warnings.warn(f'The task is not passed in as a parameter. '
-                          f'Now the task is detected as {self.task}')
             return self.task
         else:
             return task

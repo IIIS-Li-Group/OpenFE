@@ -108,6 +108,16 @@ def _cal(feature):
 
 
 def transform(X_train, X_test, new_features_list, n_jobs, name=""):
+    """ Transform train and test data according to new features. Since there are global operators such as
+        'GroupByThenMean', train and test data need to be transformed together.
+
+    :param X_train: pd.DataFrame, the train data
+    :param X_test:  pd.DataFrame, the test data
+    :param new_features_list: the new features to transform data.
+    :param n_jobs: the number of processes to calculate data
+    :param name: used for naming new features
+    :return: X_train, X_test. The transformed train and test data.
+    """
     if len(new_features_list) == 0:
         return X_train, X_test
     global _data

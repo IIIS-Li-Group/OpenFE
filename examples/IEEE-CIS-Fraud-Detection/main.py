@@ -2,8 +2,7 @@ import xgboost as xgb
 import numpy as np, pandas as pd, os, gc
 from sklearn.model_selection import GroupKFold
 from sklearn.metrics import roc_auc_score, log_loss
-from openfe import openfe, get_candidate_features
-from utils import transform, node_to_formula, formula_to_node
+from openfe import openfe, get_candidate_features, transform, tree_to_formula, formula_to_tree
 import warnings
 from IEEE_utils import *
 import random
@@ -204,7 +203,7 @@ def automatic_FE(X_train, X_test, y_train):
     candidate_features_list = get_candidate_features(numerical_features=[],
                                                      categorical_features=categorical_features,
                                                      ordinal_features=ordinal_features)
-    np.save('./all_candidate_features.npy', np.array([node_to_formula(node) for node in candidate_features_list]))
+    np.save('./all_candidate_features.npy', np.array([tree_to_formula(node) for node in candidate_features_list]))
     ofe = openfe()
     features = ofe.fit(data=X_train.loc[label.index], label=label,
                        init_scores=oof_proba,
@@ -217,7 +216,7 @@ def automatic_FE(X_train, X_test, y_train):
                        drop_columns=to_remove,
                        n_jobs=n_jobs, n_data_blocks=8, task='regression')
 
-    new_features_list = [feature for feature, score in features[:600] if score > 0]
+    new_features_list = [feature for feature in features[:600]]
     print("We are using %d more features." % len(new_features_list))
     for feature in new_features_list:
         feature.delete()

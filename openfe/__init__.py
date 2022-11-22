@@ -5,4 +5,4 @@
 name = "OpenFE"
 __version__ = "0.0.1"
 from .openfe import openfe, get_candidate_features
-from .utils import transform
+from .utils import transform, tree_to_formula, formula_to_tree

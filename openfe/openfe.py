@@ -3,12 +3,12 @@ import warnings
 import lightgbm as lgb
 import pandas as pd
 from sklearn.model_selection import train_test_split, StratifiedKFold, KFold
-from FeatureGenerator import *
+from .FeatureGenerator import *
 import random
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime
 import traceback
-from utils import node_to_formula, check_xor, formula_to_node
+from .utils import tree_to_formula, check_xor, formula_to_tree
 from sklearn.inspection import permutation_importance
 from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
 from sklearn.metrics import mean_squared_error, log_loss, roc_auc_score
@@ -162,16 +162,13 @@ class openfe:
         print("The number of candidate features", len(self.candidate_features_list))
 
         self.candidate_features_list = self.stage1_select()
-        self.new_features_list = self.stage2_select()
-
-        count = 0
-        for node, score in self.new_features_list:
+        self.new_features_scores_list = self.stage2_select()
+        self.new_features_list = [feature for feature, _ in self.new_features_scores_list]
+        for node, score in self.new_features_scores_list:
             node.delete()
-            if score > 0:
-                print(count, node_to_formula(node), score)
-                count += 1
         gc.collect()
         return self.new_features_list
+
 
     def get_index(self, train_index, val_index):
         if train_index is None or val_index is None:
@@ -274,7 +271,7 @@ class openfe:
                 init_scores = pd.DataFrame(init_scores, index=data.index)
             else:
                 if self.task == 'regression':
-                    init_scores = np.array([np.mean(self.label)]*len(self.label))
+                    init_scores = np.array([np.mean(self.label.values.ravel())]*len(self.label))
                 elif self.label[self.label.columns[0]].nunique() > 2:
                     prob = self.label[self.label.columns[0]].value_counts().sort_index().to_list()
                     prob = prob / np.sum(prob)
@@ -283,7 +280,7 @@ class openfe:
                 else:
                     def logit(x):
                         return np.log(x / (1 - x))
-                    init_scores = np.array([logit(np.mean(self.label))] * len(self.label))
+                    init_scores = np.array([logit(np.mean(self.label.values.ravel()))] * len(self.label))
                 init_scores = pd.DataFrame(init_scores, index=self.label.index)
         else:
             self.check_init_scores(init_scores)
@@ -321,12 +318,6 @@ class openfe:
         results = self._calculate_and_evaluate(self.candidate_features_list, train_idx, val_idx)
         candidate_features_scores = sorted(results, key=lambda x: x[1], reverse=True)
         candidate_features_scores = self.delete_same(candidate_features_scores)
-        print(node_to_formula(candidate_features_scores[0][0]))
-        print(candidate_features_scores[0][0].data)
-        print("Top 20 at", idx)
-        print([[node_to_formula(node), score] for node, score in candidate_features_scores[:20]])
-
-        print("Time spent", idx, datetime.now() - start)
 
         while idx != len(train_index_samples):
             start = datetime.now()
@@ -336,41 +327,28 @@ class openfe:
             val_idx = val_index_samples[idx]
             idx += 1
             if n_reserved_features <= self.min_candidate_features:
-                print("Early return at idx", idx)
                 train_idx = train_index_samples[-1]
                 val_idx = val_index_samples[-1]
                 idx = len(train_index_samples)
             else:
-                deleted = [[node_to_formula(node), score] for node, score in candidate_features_scores[n_reserved_features:]]
+                deleted = [[tree_to_formula(node), score] for node, score in candidate_features_scores[n_reserved_features:]]
                 deleted = np.array(deleted)
                 np.save('deleted_%d.npy' % (idx-1), deleted)
             candidate_features_list = [item[0] for item in candidate_features_scores[:n_reserved_features]]
             del candidate_features_scores[n_reserved_features:]; gc.collect()
-            print("The number of candidate features", len(candidate_features_list))
 
             results = self._calculate_and_evaluate(candidate_features_list, train_idx, val_idx)
             candidate_features_scores = sorted(results, key=lambda x: x[1], reverse=True)
-            print("Top 20 at", idx)
-            print([[node_to_formula(node), score] for node, score in candidate_features_scores[:20]])
 
-            print("Time spent", idx, datetime.now() - start)
-            print(node_to_formula(candidate_features_scores[0][0]))
-            print(candidate_features_scores[0][0].data)
-            print(node_to_formula(candidate_features_scores[1][0]))
-            print(candidate_features_scores[1][0].data)
-
-        print(f'stopped at idx {idx}')
         return [item for item in candidate_features_scores if item[1] > 0]
 
     def stage2_select(self):
         data_new = []
         new_features = []
         for feature, score in self.candidate_features_list:
-            new_features.append(node_to_formula(feature))
+            new_features.append(tree_to_formula(feature))
             data_new.append(feature.data.values)
         data_new = np.vstack(data_new)
-        print(data_new.T.shape)
-        start = datetime.now()
         data_new = pd.DataFrame(data_new.T, index=self.candidate_features_list[0][0].data.index,
                                 columns=['autoFE-%d' % i for i in range(len(new_features))])
         data_new = pd.concat([data_new, self.data], axis=1)
@@ -402,63 +380,19 @@ class openfe:
         gbm.fit(train_x, train_y, init_score=train_init,
                 eval_init_score=[val_init],
                 eval_set=[(val_x, val_y)],
-                callbacks=[lgb.early_stopping(50), lgb.log_evaluation(1)])
-        print("Time spent training phase I", datetime.now() - start)
-        init_metric = self.get_init_metric(val_init, val_y)
-        key = list(gbm.best_score_['valid_0'].keys())[0]
-        if self.metric == 'auc':
-            score = gbm.best_score_['valid_0'][key] - init_metric
-        else:
-            score = init_metric - gbm.best_score_['valid_0'][key]
-        print(f"The estimated improvement of {self.metric} is {score}")
+                callbacks=[lgb.early_stopping(50, verbose=False)])
         results = []
         if self.stage2_metric == 'gain_importance':
             for i, imp in enumerate(gbm.feature_importances_[:len(new_features)]):
-                results.append([formula_to_node(new_features[i]), imp])
+                results.append([formula_to_tree(new_features[i]), imp])
         elif self.stage2_metric == 'permutation':
-            start = datetime.now()
             r = permutation_importance(gbm, val_x, val_y,
                                        n_repeats=self.n_repeats, random_state=self.seed, n_jobs=self.n_jobs)
             for i, imp in enumerate(r.importances_mean[:len(new_features)]):
-                results.append([formula_to_node(new_features[i]), imp])
-            print("Time spent permutation", datetime.now() - start)
+                results.append([formula_to_tree(new_features[i]), imp])
         results = sorted(results, key=lambda x: x[1], reverse=True)
         return results
 
-    def transform(self, X_train, X_test, n_new_features):
-        print("Start transforming.")
-        if n_new_features == 0:
-            return X_train, X_test
-        _data1 = pd.concat([X_train, X_test], axis=0)
-        n_train = len(X_train)
-        print(_data1.shape, n_train, self.n_jobs)
-        ex = ProcessPoolExecutor(self.n_jobs)
-        results = []
-        for feature, _ in self.new_features_list[:n_new_features]:
-            print(node_to_formula(feature))
-            feature = formula_to_node(node_to_formula(feature))
-            results.append(ex.submit(self._cal, feature, _data1[feature.get_fnode()].copy(), n_train))
-        ex.shutdown(wait=True)
-        print("Finish multiprocessing")
-        _train = []
-        _test = []
-        names = []
-        names_map = {}
-        for i, res in enumerate(results):
-            d1, d2, f = res.result()
-            names.append('autoFE_f_%d' % i)
-            names_map['autoFE_f_%d' % i] = f
-            _train.append(d1)
-            _test.append(d2)
-        print("start concatenating")
-        _train = np.vstack(_train)
-        _test = np.vstack(_test)
-        _train = pd.DataFrame(_train.T, columns=names, index=X_train.index)
-        _test = pd.DataFrame(_test.T, columns=names, index=X_test.index)
-        _train = pd.concat([X_train, _train], axis=1)
-        _test = pd.concat([X_test, _test], axis=1)
-        print(_train.shape, _test.shape)
-        return _train, _test
 
     def _cal(self, feature, data_tmp, n_train):
         feature.calculate(data_tmp, is_root=True)
@@ -467,13 +401,11 @@ class openfe:
         else:
             feature.data = feature.data.replace([-np.inf, np.inf], np.nan)
             feature.data = feature.data.fillna(0)
-        print(node_to_formula(feature))
         return feature.data.values.ravel()[:n_train], \
                feature.data.values.ravel()[n_train:], \
-               node_to_formula(feature)
+               tree_to_formula(feature)
 
     def get_init_metric(self, pred, label):
-        # 要注意metric是越大越好还是越小越好
         if self.metric == 'binary_logloss':
             init_metric = log_loss(label, scipy.special.expit(pred))
         elif self.metric == 'multi_logloss':
@@ -492,33 +424,21 @@ class openfe:
         start_n = len(candidate_features_scores)
         if candidate_features_scores:
             pre_score = candidate_features_scores[0][1]
-            pre_feature = node_to_formula(candidate_features_scores[0][0])
         i = 1
-        count = 0
         while i < len(candidate_features_scores):
             now_score = candidate_features_scores[i][1]
-            if count < 100:
-                now_feature = node_to_formula(candidate_features_scores[i][0])
             if abs(now_score - pre_score) < threshold:
                 candidate_features_scores.pop(i)
-                if count < 100:
-                    print(pre_feature, pre_score, now_feature, now_score)
-                    count += 1
             else:
                 pre_score = now_score
-                if count < 100:
-                    pre_feature = now_feature
                 i += 1
         end_n = len(candidate_features_scores)
-        print("%d same features have been deleted." % (start_n - end_n))
         return candidate_features_scores
 
     def _evaluate(self, candidate_feature, train_y, val_y, train_init, val_init, init_metric):
         try:
             train_x = pd.DataFrame(candidate_feature.data.loc[train_y.index])
             val_x = pd.DataFrame(candidate_feature.data.loc[val_y.index])
-            if len(train_x) != len(train_y):
-                print(len(train_x), len(train_y))
             if self.stage1_metric == 'predictive':
                 params = {"n_estimators": 100, "importance_type": "gain", "num_leaves": 16,
                           "seed": 1, "deterministic": True, "n_jobs": 1}
@@ -564,19 +484,17 @@ class openfe:
                 results.append(candidate_feature)
             return results
         except:
-            print(node_to_formula(candidate_feature))
+            print(tree_to_formula(candidate_feature))
             print(traceback.format_exc())
             exit()
 
     def _calculate(self, candidate_features, train_idx, val_idx):
-        print("We are using %d data points." % (len(train_idx) + len(val_idx)))
         results = []
         length = int(np.ceil(len(candidate_features) / self.n_jobs / 4))
         n = int(np.ceil(len(candidate_features) / length))
         random.shuffle(candidate_features)
         for f in candidate_features:
             f.delete()
-        print(self.n_jobs)
         with ProcessPoolExecutor(max_workers=self.n_jobs) as ex:
             with tqdm(total=n) as progress:
                 for i in range(n):
@@ -610,19 +528,17 @@ class openfe:
                 results.append([candidate_feature, score])
             return results
         except:
-            print(node_to_formula(candidate_feature))
+            print(tree_to_formula(candidate_feature))
             print(traceback.format_exc())
             exit()
 
     def _calculate_and_evaluate(self, candidate_features, train_idx, val_idx):
-        print("We are using %d data points." % (len(train_idx)+len(val_idx)))
         results = []
         length = int(np.ceil(len(candidate_features) / self.n_jobs / 4))
         n = int(np.ceil(len(candidate_features) / length))
         random.shuffle(candidate_features)
         for f in candidate_features:
             f.delete()
-        print(self.n_jobs)
         with ProcessPoolExecutor(max_workers=self.n_jobs) as ex:
             with tqdm(total=n) as progress:
                 for i in range(n):

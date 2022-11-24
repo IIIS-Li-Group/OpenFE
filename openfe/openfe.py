@@ -59,6 +59,30 @@ def _enumerate(current_order_num_features, lower_order_num_features,
 
 
 def get_candidate_features(numerical_features=None, categorical_features=None, ordinal_features=None, order=1):
+    ''' You can determine the list of candidate features yourself. This function returns a list of
+    candidate features that can be fed into openfe.fit(candidate_features_list)
+
+    Parameters
+    ----------
+    numerical_features: list, optional (default=None)
+        The numerical features in the data.
+
+    categorical_features: list, optional (default=None)
+        The categorical features in the data.
+
+    ordinal_features: list, optional (default=None)
+        Ordinal features are numerical features with discrete values, such as age.
+        Ordinal features are treated as both numerical and categorical features when generating
+        candidate features.
+
+    order: int, optional (default=1)
+        The maximum order of the generated candidate features. A value larger than 1 may result
+        in an extremely large number of candidate features.
+
+    Returns
+    -------
+    A list of candidate features.
+    '''
     if numerical_features is None: numerical_features = []
     if categorical_features is None: categorical_features = []
     if ordinal_features is None: ordinal_features = []
@@ -129,7 +153,7 @@ class openfe:
             n_repeats=1,
             n_jobs=1,
             seed=1):
-        '''
+        ''' Generate new features by the algorithm of OpenFE
 
         Parameters
         ----------
@@ -176,7 +200,7 @@ class openfe:
 
         n_data_blocks: int, optional (default=8)
             The number of data blocks for successive feature-wise halving. See more details in our
-            paper. Should be 2^n (e.g., 1, 2, 4, 8, 16, 32, ...). Larger values for faster speed,
+            paper. Should be 2^k (e.g., 1, 2, 4, 8, 16, 32, ...). Larger values for faster speed,
             but may hurt the overall performance, especially when there are many useful
             candidate features.
 
@@ -280,13 +304,6 @@ class openfe:
             return train_index, val_index
 
     def get_candidate_features(self, candidate_features_list):
-        ''' get candidate features
-
-        Parameters
-        ----------
-        candidate_features_list: a list
-            candidate features
-        '''
         if candidate_features_list is None:
             ordinal_features = []
             numerical_features = []
@@ -417,7 +434,6 @@ class openfe:
             return [[f, 0] for f in self._calculate(self.candidate_features_list, train_index, val_index)]
         train_index_samples = _subsample(self.train_index, self.n_data_blocks)
         val_index_samples = _subsample(self.val_index, self.n_data_blocks)
-        start = datetime.now()
         idx = 0
         train_idx = train_index_samples[idx]
         val_idx = val_index_samples[idx]
@@ -427,7 +443,6 @@ class openfe:
         candidate_features_scores = self.delete_same(candidate_features_scores)
 
         while idx != len(train_index_samples):
-            start = datetime.now()
             n_reserved_features = max(int(len(candidate_features_scores)*ratio),
                                       min(len(candidate_features_scores), self.min_candidate_features))
             train_idx = train_index_samples[idx]
@@ -440,7 +455,6 @@ class openfe:
             else:
                 deleted = [[tree_to_formula(node), score] for node, score in candidate_features_scores[n_reserved_features:]]
                 deleted = np.array(deleted)
-                np.save('deleted_%d.npy' % (idx-1), deleted)
             candidate_features_list = [item[0] for item in candidate_features_scores[:n_reserved_features]]
             del candidate_features_scores[n_reserved_features:]; gc.collect()
 

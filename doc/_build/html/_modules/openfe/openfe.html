@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>openfe.openfe &mdash; OpenFE 0.0.3 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> OpenFE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../quick_start.html">Quick Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../openfe.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../parameter_tuning.html">Parameters Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../FAQ.html">Tutorials on Feature Generation and FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">OpenFE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">openfe.openfe</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for openfe.openfe</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">gc</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">import</span> <span class="nn">lightgbm</span> <span class="k">as</span> <span class="nn">lgb</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span><span class="p">,</span> <span class="n">StratifiedKFold</span><span class="p">,</span> <span class="n">KFold</span>
+<span class="kn">from</span> <span class="nn">.FeatureGenerator</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ProcessPoolExecutor</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">tree_to_formula</span><span class="p">,</span> <span class="n">check_xor</span><span class="p">,</span> <span class="n">formula_to_tree</span>
+<span class="kn">from</span> <span class="nn">sklearn.inspection</span> <span class="kn">import</span> <span class="n">permutation_importance</span>
+<span class="kn">from</span> <span class="nn">sklearn.feature_selection</span> <span class="kn">import</span> <span class="n">mutual_info_regression</span><span class="p">,</span> <span class="n">mutual_info_classif</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">mean_squared_error</span><span class="p">,</span> <span class="n">log_loss</span><span class="p">,</span> <span class="n">roc_auc_score</span>
+<span class="kn">import</span> <span class="nn">scipy.special</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+
+
+<span class="k">def</span> <span class="nf">_enumerate</span><span class="p">(</span><span class="n">current_order_num_features</span><span class="p">,</span> <span class="n">lower_order_num_features</span><span class="p">,</span>
+               <span class="n">current_order_cat_features</span><span class="p">,</span> <span class="n">lower_order_cat_features</span><span class="p">):</span>
+    <span class="n">num_candidate_features</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">cat_candidate_features</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">all_operators</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">current_order_num_features</span><span class="o">+</span><span class="n">current_order_cat_features</span><span class="p">:</span>
+            <span class="n">num_candidate_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Node</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">f</span><span class="p">)]))</span>
+    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">num_operators</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">current_order_num_features</span><span class="p">:</span>
+            <span class="n">num_candidate_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Node</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">f</span><span class="p">)]))</span>
+    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">num_num_operators</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">current_order_num_features</span><span class="p">)):</span>
+            <span class="n">f1</span> <span class="o">=</span> <span class="n">current_order_num_features</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">i</span> <span class="k">if</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">symmetry_operators</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">f2</span> <span class="ow">in</span> <span class="n">current_order_num_features</span><span class="p">[</span><span class="n">k</span><span class="p">:]</span> <span class="o">+</span> <span class="n">lower_order_num_features</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">check_xor</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">):</span>
+                    <span class="n">num_candidate_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Node</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">f1</span><span class="p">),</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">f2</span><span class="p">)]))</span>
+
+    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">cat_num_operators</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">current_order_num_features</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">cat_f</span> <span class="ow">in</span> <span class="n">current_order_cat_features</span> <span class="o">+</span> <span class="n">lower_order_cat_features</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">check_xor</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">cat_f</span><span class="p">):</span>
+                    <span class="n">num_candidate_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Node</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">cat_f</span><span class="p">)]))</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">lower_order_num_features</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">cat_f</span> <span class="ow">in</span> <span class="n">current_order_cat_features</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">check_xor</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">cat_f</span><span class="p">):</span>
+                    <span class="n">num_candidate_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Node</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">cat_f</span><span class="p">)]))</span>
+
+    <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">cat_cat_operators</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">current_order_cat_features</span><span class="p">)):</span>
+            <span class="n">f1</span> <span class="o">=</span> <span class="n">current_order_cat_features</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">k</span> <span class="o">=</span> <span class="n">i</span> <span class="k">if</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">symmetry_operators</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">f2</span> <span class="ow">in</span> <span class="n">current_order_cat_features</span><span class="p">[</span><span class="n">k</span><span class="p">:]</span> <span class="o">+</span> <span class="n">lower_order_cat_features</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">check_xor</span><span class="p">(</span><span class="n">f1</span><span class="p">,</span> <span class="n">f2</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">op</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Combine&#39;</span><span class="p">]:</span>
+                        <span class="n">cat_candidate_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Node</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">f1</span><span class="p">),</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">f2</span><span class="p">)]))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">num_candidate_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Node</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">f1</span><span class="p">),</span> <span class="n">deepcopy</span><span class="p">(</span><span class="n">f2</span><span class="p">)]))</span>
+    <span class="k">return</span> <span class="n">num_candidate_features</span><span class="p">,</span> <span class="n">cat_candidate_features</span>
+
+
+<div class="viewcode-block" id="get_candidate_features"><a class="viewcode-back" href="../../openfe.html#openfe.get_candidate_features">[docs]</a><span class="k">def</span> <span class="nf">get_candidate_features</span><span class="p">(</span><span class="n">numerical_features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">categorical_features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ordinal_features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39; You can determine the list of candidate features yourself. This function returns a list of</span>
+<span class="sd">    candidate features that can be fed into openfe.fit(candidate_features_list)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    numerical_features: list, optional (default=None)</span>
+<span class="sd">        The numerical features in the data.</span>
+
+<span class="sd">    categorical_features: list, optional (default=None)</span>
+<span class="sd">        The categorical features in the data.</span>
+
+<span class="sd">    ordinal_features: list, optional (default=None)</span>
+<span class="sd">        Ordinal features are numerical features with discrete values, such as age.</span>
+<span class="sd">        Ordinal features are treated as both numerical and categorical features when generating</span>
+<span class="sd">        candidate features.</span>
+
+<span class="sd">    order: int, optional (default=1)</span>
+<span class="sd">        The maximum order of the generated candidate features. A value larger than 1 may result</span>
+<span class="sd">        in an extremely large number of candidate features.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    A list of candidate features.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">numerical_features</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">numerical_features</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">categorical_features</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">categorical_features</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">ordinal_features</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">ordinal_features</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">numerical_features</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">categorical_features</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">ordinal_features</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="n">num_features</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">cat_features</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">numerical_features</span><span class="o">+</span><span class="n">categorical_features</span><span class="o">+</span><span class="n">ordinal_features</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">ordinal_features</span><span class="p">:</span>
+            <span class="n">num_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FNode</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+            <span class="n">cat_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FNode</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">categorical_features</span><span class="p">:</span>
+            <span class="n">cat_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FNode</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">num_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FNode</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+
+    <span class="n">current_order_num_features</span> <span class="o">=</span> <span class="n">num_features</span>
+    <span class="n">current_order_cat_features</span> <span class="o">=</span> <span class="n">cat_features</span>
+    <span class="n">lower_order_num_features</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">lower_order_cat_features</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">candidate_features_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">while</span> <span class="n">order</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">_num</span><span class="p">,</span> <span class="n">_cat</span> <span class="o">=</span> <span class="n">_enumerate</span><span class="p">(</span><span class="n">current_order_num_features</span><span class="p">,</span> <span class="n">lower_order_num_features</span><span class="p">,</span>
+                                         <span class="n">current_order_cat_features</span><span class="p">,</span> <span class="n">lower_order_cat_features</span><span class="p">)</span>
+        <span class="n">candidate_features_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">_num</span><span class="p">)</span>
+        <span class="n">candidate_features_list</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">_cat</span><span class="p">)</span>
+        <span class="n">lower_order_num_features</span><span class="p">,</span> <span class="n">lower_order_cat_features</span> <span class="o">=</span> <span class="n">current_order_num_features</span><span class="p">,</span> <span class="n">current_order_cat_features</span>
+        <span class="n">current_order_num_features</span><span class="p">,</span> <span class="n">current_order_cat_features</span> <span class="o">=</span> <span class="n">_num</span><span class="p">,</span> <span class="n">_cat</span>
+        <span class="n">order</span> <span class="o">-=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">candidate_features_list</span></div>
+
+
+<span class="k">def</span> <span class="nf">_subsample</span><span class="p">(</span><span class="n">iterators</span><span class="p">,</span> <span class="n">n_data_blocks</span><span class="p">):</span>
+    <span class="n">iterators</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">iterators</span><span class="p">)</span>
+    <span class="n">length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">iterators</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_data_blocks</span><span class="p">)</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">iterators</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">iterators</span><span class="p">[:</span><span class="n">length</span><span class="p">]]</span>
+    <span class="k">while</span> <span class="n">n_data_blocks</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">n_data_blocks</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_data_blocks</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">length</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_data_blocks</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iterators</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">iterators</span><span class="p">[:</span><span class="n">length</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">results</span>
+
+
+<div class="viewcode-block" id="openfe"><a class="viewcode-back" href="../../openfe.html#openfe.openfe">[docs]</a><span class="k">class</span> <span class="nc">openfe</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="openfe.fit"><a class="viewcode-back" href="../../openfe.html#openfe.openfe.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
+            <span class="n">task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">train_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">val_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">candidate_features_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">init_scores</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">categorical_features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">metric</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">drop_columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">n_data_blocks</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+            <span class="n">min_candidate_features</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
+            <span class="n">feature_boosting</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">stage1_metric</span><span class="o">=</span><span class="s1">&#39;predictive&#39;</span><span class="p">,</span>
+            <span class="n">stage2_metric</span><span class="o">=</span><span class="s1">&#39;gain_importance&#39;</span><span class="p">,</span>
+            <span class="n">stage2_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">is_stage1</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">n_repeats</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">n_jobs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39; Generate new features by the algorithm of OpenFE</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        data: pd.DataFrame</span>
+<span class="sd">            the input data</span>
+
+<span class="sd">        label: pd.DataFrame</span>
+<span class="sd">            the target</span>
+
+<span class="sd">        task: str, optional (default=None)</span>
+<span class="sd">            &#39;classification&#39; or &#39;regression&#39;, if None, label with n_unique_values less than 20</span>
+<span class="sd">            will be set to classification, else regression.</span>
+
+<span class="sd">        train_index: pd.index, optional (default=None)</span>
+<span class="sd">            the index of the data for training purposes.</span>
+
+<span class="sd">        val_index: pd.index, optional (default=None)</span>
+<span class="sd">            the index of the data for validation purposes. If train_index or val_index is None,</span>
+<span class="sd">            we split the data into 0.8 (train) and 0.2 (val). It is recommended to pass in the index</span>
+<span class="sd">            if the data has time series property.</span>
+
+<span class="sd">        candidate_features_list: list, optional (default=None)</span>
+<span class="sd">            the candidate features list for filtering. If None, it will be generated</span>
+<span class="sd">            automatically, and users can define their candidate features list according to</span>
+<span class="sd">            their prior knowledge.</span>
+
+<span class="sd">        init_scores: pd.DataFrame, optional (default=None)</span>
+<span class="sd">            the initial scores for feature boosting. Please see our paper for more details. If None,</span>
+<span class="sd">            we generate initial scores by 5-fold cross-validation.</span>
+
+<span class="sd">        categorical_features: list, optional (default=None)</span>
+<span class="sd">            a list of categorical features. If None, we detect categorical features by using</span>
+<span class="sd">            data.select_dtypes(exclude=np.number).columns.to_list().</span>
+
+<span class="sd">        metric: str, optional (default=None)</span>
+<span class="sd">            The metric for evaluating the performance of new features in feature boosting. Currently</span>
+<span class="sd">            support [&#39;binary_logloss&#39;, &#39;multi_logloss&#39;, &#39;auc&#39;, &#39;rmse&#39;]. The default metric is</span>
+<span class="sd">            &#39;binary_logloss&#39; for binary-classification, &#39;multi_logloss&#39; for multi-classification,</span>
+<span class="sd">            and &#39;rmse&#39; for regression tasks.</span>
+
+<span class="sd">        drop_columns: list, optional (default=None)</span>
+<span class="sd">            A list of columns you would like to drop when building the LightGBM in stage2.</span>
+<span class="sd">            These columns will still be used to generate candidate_features_list.</span>
+
+<span class="sd">        n_data_blocks: int, optional (default=8)</span>
+<span class="sd">            The number of data blocks for successive feature-wise halving. See more details in our</span>
+<span class="sd">            paper. Should be 2^k (e.g., 1, 2, 4, 8, 16, 32, ...). Larger values for faster speed,</span>
+<span class="sd">            but may hurt the overall performance, especially when there are many useful</span>
+<span class="sd">            candidate features.</span>
+
+<span class="sd">        min_candidate_features: int, optional (default=2000)</span>
+<span class="sd">            The minimum number of candidate features after successive feature-wise halving.</span>
+<span class="sd">            It is used to early-stop successive feature-wise halving. When the number of</span>
+<span class="sd">            candidate features is smaller than min_candidate_features, successive</span>
+<span class="sd">            feature-wise halving will stop immediately.</span>
+
+<span class="sd">        feature_boosting: bool, optional (default=False)</span>
+<span class="sd">            Whether to use feature boosting. See more details in our paper.</span>
+<span class="sd">            If False, the init_scores will be set the same as the default values in LightGBM.</span>
+
+<span class="sd">        stage1_metric: str, optional (default=&#39;predictive&#39;)</span>
+<span class="sd">            The metric used for evaluating the features in stage1. Currently support</span>
+<span class="sd">            [&#39;predictive&#39;, &#39;corr&#39;, &#39;mi&#39;]. &#39;predictive&#39; is the method described in the paper.</span>
+<span class="sd">            &#39;corr&#39; is the Pearson correlation between the feature and the target.</span>
+<span class="sd">            &#39;mi&#39; is the mutual information between the feature and the target.</span>
+<span class="sd">            It is recommended to use the default &#39;predictive&#39;.</span>
+
+<span class="sd">        stage2_metric: str, optional (default=&#39;gain_importance&#39;)</span>
+<span class="sd">            The feature importance used to rank the features in stage2. Currently support</span>
+<span class="sd">            [&#39;gain_importance&#39;, &#39;permutation&#39;].</span>
+<span class="sd">            &#39;gain_importance&#39; is the same as the importance in LightGBM.</span>
+<span class="sd">            &#39;permutation&#39; is another feature importance method. It is sometimes better than</span>
+<span class="sd">            gain importance, but requires much more computational time.</span>
+
+<span class="sd">        stage2_params: dict, optional (default=None)</span>
+<span class="sd">            The parameters for training LightGBM in stage2.</span>
+
+<span class="sd">        is_stage1: bool, optional (default=True)</span>
+<span class="sd">            Whether to use successive feature-wise halving to eliminate candidate features. If False,</span>
+<span class="sd">            all the candidate features are calculated and used to train the LightGBM in stage2,</span>
+<span class="sd">            which may require a large amount of memory as well as computational time.</span>
+
+<span class="sd">        n_repeats: int, optional (default=1)</span>
+<span class="sd">            The number of repeats in permutation. Only useful when stage2_metric is set to &#39;permutation&#39;.</span>
+
+<span class="sd">        n_jobs: int, optional (default=1)</span>
+<span class="sd">            The number of processes used for feature calculation and evaluation.</span>
+
+<span class="sd">        seed: int, optional (default=1)</span>
+<span class="sd">            Random number seed. This will seed everything.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        a list of new features, sorted by their importance (from most important to least important).</span>
+
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">assert</span> <span class="n">stage2_metric</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gain_importance&#39;</span><span class="p">,</span> <span class="s1">&#39;permutation&#39;</span><span class="p">]</span>
+        <span class="k">assert</span> <span class="n">stage1_metric</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;predictive&#39;</span><span class="p">,</span> <span class="s1">&#39;corr&#39;</span><span class="p">,</span> <span class="s1">&#39;mi&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">metric</span><span class="p">:</span> <span class="k">assert</span> <span class="n">metric</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;binary_logloss&#39;</span><span class="p">,</span> <span class="s1">&#39;multi_logloss&#39;</span><span class="p">,</span> <span class="s1">&#39;auc&#39;</span><span class="p">,</span> <span class="s1">&#39;rmse&#39;</span><span class="p">]</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">drop_columns</span> <span class="o">=</span> <span class="n">drop_columns</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_data_blocks</span> <span class="o">=</span> <span class="n">n_data_blocks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_candidate_features</span> <span class="o">=</span> <span class="n">min_candidate_features</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage1_metric</span> <span class="o">=</span> <span class="n">stage1_metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage2_metric</span> <span class="o">=</span> <span class="n">stage2_metric</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feature_boosting</span> <span class="o">=</span> <span class="n">feature_boosting</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stage2_params</span> <span class="o">=</span> <span class="n">stage2_params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_stage1</span> <span class="o">=</span> <span class="n">is_stage1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_repeats</span> <span class="o">=</span> <span class="n">n_repeats</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span> <span class="o">=</span> <span class="n">n_jobs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_to_dataframe</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_metric</span><span class="p">(</span><span class="n">metric</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">categorical_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_categorical_features</span><span class="p">(</span><span class="n">categorical_features</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_candidate_features</span><span class="p">(</span><span class="n">candidate_features_list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">val_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_index</span><span class="p">(</span><span class="n">train_index</span><span class="p">,</span> <span class="n">val_index</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_init_score</span><span class="p">(</span><span class="n">init_scores</span><span class="p">)</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The number of candidate features is&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage1_select</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new_features_scores_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage2_select</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new_features_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">feature</span> <span class="k">for</span> <span class="n">feature</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_features_scores_list</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_features_scores_list</span><span class="p">:</span>
+            <span class="n">node</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_features_list</span></div>
+
+
+    <span class="k">def</span> <span class="nf">get_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_index</span><span class="p">,</span> <span class="n">val_index</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">train_index</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">val_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s1">&#39;classification&#39;</span><span class="p">:</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">test_y</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">stratify</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+                                                         <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">test_y</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">train_y</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">test_y</span><span class="o">.</span><span class="n">index</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">train_index</span><span class="p">,</span> <span class="n">val_index</span>
+
+    <span class="k">def</span> <span class="nf">get_candidate_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidate_features_list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">candidate_features_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ordinal_features</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">numerical_features</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="n">ordinal_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">numerical_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
+            <span class="n">candidate_features_list</span> <span class="o">=</span> <span class="n">get_candidate_features</span><span class="p">(</span>
+                <span class="n">numerical_features</span><span class="o">=</span><span class="n">numerical_features</span><span class="p">,</span>
+                <span class="n">categorical_features</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">categorical_features</span><span class="p">,</span>
+                <span class="n">ordinal_features</span><span class="o">=</span><span class="n">ordinal_features</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">candidate_features_list</span>
+
+    <span class="k">def</span> <span class="nf">get_categorical_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">categorical_features</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">categorical_features</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">select_dtypes</span><span class="p">(</span><span class="n">exclude</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">categorical_features</span>
+
+    <span class="k">def</span> <span class="nf">get_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">task</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mi">20</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="s1">&#39;classification&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="s1">&#39;regression&#39;</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">task</span>
+
+    <span class="k">def</span> <span class="nf">get_metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metric</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s1">&#39;classification&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s1">&#39;multi_logloss&#39;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="s1">&#39;binary_logloss&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;rmse&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">metric</span>
+
+    <span class="k">def</span> <span class="nf">data_to_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot transform data and label into dataframe due to error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_init_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">init_scores</span><span class="p">,</span> <span class="n">use_train</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">init_scores</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;regression&quot;</span><span class="p">,</span> <span class="s2">&quot;classification&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_boosting</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+                <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;n_estimators&quot;</span><span class="p">:</span> <span class="mi">10000</span><span class="p">,</span> <span class="s2">&quot;learning_rate&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s2">&quot;metric&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span>
+                          <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="s2">&quot;n_jobs&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span><span class="p">}</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s2">&quot;regression&quot;</span><span class="p">:</span>
+                    <span class="n">gbm</span> <span class="o">=</span> <span class="n">lgb</span><span class="o">.</span><span class="n">LGBMRegressor</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">gbm</span> <span class="o">=</span> <span class="n">lgb</span><span class="o">.</span><span class="n">LGBMClassifier</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_features</span><span class="p">:</span>
+                    <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;category&#39;</span><span class="p">)</span>
+                    <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span><span class="o">.</span><span class="n">cat</span><span class="o">.</span><span class="n">codes</span>
+                    <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;category&#39;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s1">&#39;classification&#39;</span> <span class="ow">and</span> <span class="n">label</span><span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">init_scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">label</span><span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">init_scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+                <span class="n">skf</span> <span class="o">=</span> <span class="n">StratifiedKFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s2">&quot;classification&quot;</span> <span class="k">else</span> <span class="n">KFold</span><span class="p">(</span><span class="n">n_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">train_index</span><span class="p">,</span> <span class="n">val_index</span> <span class="ow">in</span> <span class="n">skf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+                    <span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">train_index</span><span class="p">],</span> <span class="n">label</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">train_index</span><span class="p">]</span>
+                    <span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">val_index</span><span class="p">],</span> <span class="n">label</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">val_index</span><span class="p">]</span>
+
+                    <span class="n">gbm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span>
+                            <span class="n">eval_set</span><span class="o">=</span><span class="p">[[</span><span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">]],</span> <span class="n">callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">lgb</span><span class="o">.</span><span class="n">early_stopping</span><span class="p">(</span><span class="mi">200</span><span class="p">)])</span>
+
+                    <span class="k">if</span> <span class="n">use_train</span><span class="p">:</span>
+                        <span class="n">init_scores</span><span class="p">[</span><span class="n">train_index</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">gbm</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">raw_score</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s2">&quot;classification&quot;</span> <span class="k">else</span> \
+                                                 <span class="n">gbm</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_train</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="n">skf</span><span class="o">.</span><span class="n">n_splits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">init_scores</span><span class="p">[</span><span class="n">val_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">gbm</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_val</span><span class="p">,</span> <span class="n">raw_score</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s2">&quot;classification&quot;</span> <span class="k">else</span> \
+                            <span class="n">gbm</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_val</span><span class="p">)</span>
+
+                <span class="n">init_scores</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">init_scores</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s1">&#39;regression&#39;</span><span class="p">:</span>
+                    <span class="n">init_scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">())]</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+                    <span class="n">prob</span> <span class="o">=</span> <span class="n">prob</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">prob</span><span class="p">)</span>
+                    <span class="n">prob</span> <span class="o">=</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">prob</span><span class="p">)]</span>
+                    <span class="n">init_scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">prob</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">def</span> <span class="nf">logit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">x</span><span class="p">))</span>
+                    <span class="n">init_scores</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">logit</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">()))]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">))</span>
+                <span class="n">init_scores</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">init_scores</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_init_scores</span><span class="p">(</span><span class="n">init_scores</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">init_scores</span>
+
+    <span class="k">def</span> <span class="nf">check_init_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">init_scores</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s1">&#39;classification&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">init_scores</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">&gt;=</span><span class="mi">0</span><span class="p">)</span><span class="o">&amp;</span><span class="p">(</span><span class="n">init_scores</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">&lt;=</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;The init_scores for classification should be raw scores instead of probability.&quot;</span>
+                              <span class="s2">&quot; But the init_scores are between 0 and 1.&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">stage1_select</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ratio</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+        <span class="k">global</span> <span class="n">_data</span>
+        <span class="k">global</span> <span class="n">_label</span>
+        <span class="k">global</span> <span class="n">_init_scores</span>
+        <span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">_init_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scores</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_stage1</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">train_index</span> <span class="o">=</span> <span class="n">_subsample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_data_blocks</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">val_index</span> <span class="o">=</span> <span class="n">_subsample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">val_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_data_blocks</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_index</span><span class="o">+</span><span class="n">val_index</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_index</span><span class="o">+</span><span class="n">val_index</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">train_index</span> <span class="o">=</span> <span class="n">train_index</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">val_index</span> <span class="o">=</span> <span class="n">val_index</span>
+            <span class="k">return</span> <span class="p">[[</span><span class="n">f</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">,</span> <span class="n">train_index</span><span class="p">,</span> <span class="n">val_index</span><span class="p">)]</span>
+        <span class="n">train_index_samples</span> <span class="o">=</span> <span class="n">_subsample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_data_blocks</span><span class="p">)</span>
+        <span class="n">val_index_samples</span> <span class="o">=</span> <span class="n">_subsample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">val_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_data_blocks</span><span class="p">)</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">train_idx</span> <span class="o">=</span> <span class="n">train_index_samples</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">val_idx</span> <span class="o">=</span> <span class="n">val_index_samples</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_and_evaluate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">,</span> <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">)</span>
+        <span class="n">candidate_features_scores</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">candidate_features_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">delete_same</span><span class="p">(</span><span class="n">candidate_features_scores</span><span class="p">)</span>
+
+        <span class="k">while</span> <span class="n">idx</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_index_samples</span><span class="p">):</span>
+            <span class="n">n_reserved_features</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candidate_features_scores</span><span class="p">)</span><span class="o">*</span><span class="n">ratio</span><span class="p">),</span>
+                                      <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candidate_features_scores</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_candidate_features</span><span class="p">))</span>
+            <span class="n">train_idx</span> <span class="o">=</span> <span class="n">train_index_samples</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="n">val_idx</span> <span class="o">=</span> <span class="n">val_index_samples</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+            <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">n_reserved_features</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_candidate_features</span><span class="p">:</span>
+                <span class="n">train_idx</span> <span class="o">=</span> <span class="n">train_index_samples</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">val_idx</span> <span class="o">=</span> <span class="n">val_index_samples</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_index_samples</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">deleted</span> <span class="o">=</span> <span class="p">[[</span><span class="n">tree_to_formula</span><span class="p">(</span><span class="n">node</span><span class="p">),</span> <span class="n">score</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">candidate_features_scores</span><span class="p">[</span><span class="n">n_reserved_features</span><span class="p">:]]</span>
+                <span class="n">deleted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span>
+            <span class="n">candidate_features_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">candidate_features_scores</span><span class="p">[:</span><span class="n">n_reserved_features</span><span class="p">]]</span>
+            <span class="k">del</span> <span class="n">candidate_features_scores</span><span class="p">[</span><span class="n">n_reserved_features</span><span class="p">:];</span> <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+            <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_and_evaluate</span><span class="p">(</span><span class="n">candidate_features_list</span><span class="p">,</span> <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">)</span>
+            <span class="n">candidate_features_scores</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">candidate_features_scores</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">stage2_select</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">data_new</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">new_features</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">feature</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">:</span>
+            <span class="n">new_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tree_to_formula</span><span class="p">(</span><span class="n">feature</span><span class="p">))</span>
+            <span class="n">data_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="n">data_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">data_new</span><span class="p">)</span>
+        <span class="n">data_new</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data_new</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+                                <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;autoFE-</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">new_features</span><span class="p">))])</span>
+        <span class="n">data_new</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">data_new</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_features</span><span class="p">:</span>
+            <span class="n">data_new</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_new</span><span class="p">[</span><span class="n">f</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;category&#39;</span><span class="p">)</span>
+            <span class="n">data_new</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_new</span><span class="p">[</span><span class="n">f</span><span class="p">]</span><span class="o">.</span><span class="n">cat</span><span class="o">.</span><span class="n">codes</span>
+            <span class="n">data_new</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_new</span><span class="p">[</span><span class="n">f</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;category&#39;</span><span class="p">)</span>
+        <span class="n">data_new</span> <span class="o">=</span> <span class="n">data_new</span><span class="o">.</span><span class="n">replace</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">drop_columns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data_new</span> <span class="o">=</span> <span class="n">data_new</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">drop_columns</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">train_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">train_index</span><span class="p">]</span>
+        <span class="n">val_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">val_index</span><span class="p">]</span>
+        <span class="n">train_init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scores</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">train_index</span><span class="p">]</span>
+        <span class="n">val_init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scores</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">val_index</span><span class="p">]</span>
+
+        <span class="n">train_x</span> <span class="o">=</span> <span class="n">data_new</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">train_index</span><span class="p">]</span>
+        <span class="n">val_x</span> <span class="o">=</span> <span class="n">data_new</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">val_index</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage2_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;n_estimators&quot;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s2">&quot;importance_type&quot;</span><span class="p">:</span> <span class="s2">&quot;gain&quot;</span><span class="p">,</span> <span class="s2">&quot;num_leaves&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+                      <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;n_jobs&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span><span class="p">}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage2_params</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;metric&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">})</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s1">&#39;classification&#39;</span><span class="p">:</span>
+            <span class="n">gbm</span> <span class="o">=</span> <span class="n">lgb</span><span class="o">.</span><span class="n">LGBMClassifier</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">gbm</span> <span class="o">=</span> <span class="n">lgb</span><span class="o">.</span><span class="n">LGBMRegressor</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="n">gbm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">init_score</span><span class="o">=</span><span class="n">train_init</span><span class="p">,</span>
+                <span class="n">eval_init_score</span><span class="o">=</span><span class="p">[</span><span class="n">val_init</span><span class="p">],</span>
+                <span class="n">eval_set</span><span class="o">=</span><span class="p">[(</span><span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="p">)],</span>
+                <span class="n">callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">lgb</span><span class="o">.</span><span class="n">early_stopping</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)])</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage2_metric</span> <span class="o">==</span> <span class="s1">&#39;gain_importance&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">imp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gbm</span><span class="o">.</span><span class="n">feature_importances_</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">new_features</span><span class="p">)]):</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">formula_to_tree</span><span class="p">(</span><span class="n">new_features</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">imp</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage2_metric</span> <span class="o">==</span> <span class="s1">&#39;permutation&#39;</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">permutation_importance</span><span class="p">(</span><span class="n">gbm</span><span class="p">,</span> <span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="p">,</span>
+                                       <span class="n">n_repeats</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_repeats</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="n">n_jobs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">imp</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">importances_mean</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">new_features</span><span class="p">)]):</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">formula_to_tree</span><span class="p">(</span><span class="n">new_features</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">imp</span><span class="p">])</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">results</span>
+
+
+    <span class="k">def</span> <span class="nf">_cal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature</span><span class="p">,</span> <span class="n">data_tmp</span><span class="p">,</span> <span class="n">n_train</span><span class="p">):</span>
+        <span class="n">feature</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">data_tmp</span><span class="p">,</span> <span class="n">is_root</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;category&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;object&#39;</span><span class="p">):</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">feature</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">replace</span><span class="p">([</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+            <span class="n">feature</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[:</span><span class="n">n_train</span><span class="p">],</span> \
+               <span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[</span><span class="n">n_train</span><span class="p">:],</span> \
+               <span class="n">tree_to_formula</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">get_init_metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;binary_logloss&#39;</span><span class="p">:</span>
+            <span class="n">init_metric</span> <span class="o">=</span> <span class="n">log_loss</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">expit</span><span class="p">(</span><span class="n">pred</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;multi_logloss&#39;</span><span class="p">:</span>
+            <span class="n">init_metric</span> <span class="o">=</span> <span class="n">log_loss</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;rmse&#39;</span><span class="p">:</span>
+            <span class="n">init_metric</span> <span class="o">=</span> <span class="n">mean_squared_error</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">squared</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;auc&#39;</span><span class="p">:</span>
+            <span class="n">init_metric</span> <span class="o">=</span> <span class="n">roc_auc_score</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">expit</span><span class="p">(</span><span class="n">pred</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Metric </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="si">}</span><span class="s2"> is not supported. &quot;</span>
+                                      <span class="sa">f</span><span class="s2">&quot;Please select metric from [&#39;binary_logloss&#39;, &#39;multi_logloss&#39;&quot;</span>
+                                      <span class="sa">f</span><span class="s2">&quot;&#39;rmse&#39;, &#39;auc&#39;].&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">init_metric</span>
+
+    <span class="k">def</span> <span class="nf">delete_same</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidate_features_scores</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">1e-20</span><span class="p">):</span>
+        <span class="n">start_n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidate_features_scores</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">candidate_features_scores</span><span class="p">:</span>
+            <span class="n">pre_score</span> <span class="o">=</span> <span class="n">candidate_features_scores</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidate_features_scores</span><span class="p">):</span>
+            <span class="n">now_score</span> <span class="o">=</span> <span class="n">candidate_features_scores</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">now_score</span> <span class="o">-</span> <span class="n">pre_score</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">:</span>
+                <span class="n">candidate_features_scores</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pre_score</span> <span class="o">=</span> <span class="n">now_score</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">end_n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidate_features_scores</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">candidate_features_scores</span>
+
+    <span class="k">def</span> <span class="nf">_evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidate_feature</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">val_y</span><span class="p">,</span> <span class="n">train_init</span><span class="p">,</span> <span class="n">val_init</span><span class="p">,</span> <span class="n">init_metric</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">train_x</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">candidate_feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_y</span><span class="o">.</span><span class="n">index</span><span class="p">])</span>
+            <span class="n">val_x</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">candidate_feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">val_y</span><span class="o">.</span><span class="n">index</span><span class="p">])</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage1_metric</span> <span class="o">==</span> <span class="s1">&#39;predictive&#39;</span><span class="p">:</span>
+                <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;n_estimators&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">,</span> <span class="s2">&quot;importance_type&quot;</span><span class="p">:</span> <span class="s2">&quot;gain&quot;</span><span class="p">,</span> <span class="s2">&quot;num_leaves&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
+                          <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;deterministic&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;n_jobs&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">}</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">params</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;metric&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="p">})</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s1">&#39;classification&#39;</span><span class="p">:</span>
+                    <span class="n">gbm</span> <span class="o">=</span> <span class="n">lgb</span><span class="o">.</span><span class="n">LGBMClassifier</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">gbm</span> <span class="o">=</span> <span class="n">lgb</span><span class="o">.</span><span class="n">LGBMRegressor</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+                <span class="n">gbm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">init_score</span><span class="o">=</span><span class="n">train_init</span><span class="p">,</span>
+                        <span class="n">eval_init_score</span><span class="o">=</span><span class="p">[</span><span class="n">val_init</span><span class="p">],</span>
+                        <span class="n">eval_set</span><span class="o">=</span><span class="p">[(</span><span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="p">)],</span>
+                        <span class="n">callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">lgb</span><span class="o">.</span><span class="n">early_stopping</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)])</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">gbm</span><span class="o">.</span><span class="n">best_score_</span><span class="p">[</span><span class="s1">&#39;valid_0&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;auc&#39;</span><span class="p">]:</span>
+                    <span class="n">score</span> <span class="o">=</span> <span class="n">gbm</span><span class="o">.</span><span class="n">best_score_</span><span class="p">[</span><span class="s1">&#39;valid_0&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">-</span> <span class="n">init_metric</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">score</span> <span class="o">=</span> <span class="n">init_metric</span> <span class="o">-</span> <span class="n">gbm</span><span class="o">.</span><span class="n">best_score_</span><span class="p">[</span><span class="s1">&#39;valid_0&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage1_metric</span> <span class="o">==</span> <span class="s1">&#39;corr&#39;</span><span class="p">:</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">corrcoef</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">train_x</span><span class="p">,</span> <span class="n">val_x</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+                                    <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">train_y</span><span class="p">,</span> <span class="n">val_y</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">())[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage1_metric</span> <span class="o">==</span> <span class="s1">&#39;mi&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s1">&#39;regression&#39;</span><span class="p">:</span>
+                    <span class="n">r</span> <span class="o">=</span> <span class="n">mutual_info_regression</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">train_x</span><span class="p">,</span> <span class="n">val_x</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                               <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">train_y</span><span class="p">,</span> <span class="n">val_y</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">r</span> <span class="o">=</span> <span class="n">mutual_info_classif</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">train_x</span><span class="p">,</span> <span class="n">val_x</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                            <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">train_y</span><span class="p">,</span> <span class="n">val_y</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">())</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Cannot recognize filter_metric </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage1_metric</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">score</span>
+
+    <span class="k">def</span> <span class="nf">_calculate_multiprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidate_features</span><span class="p">,</span> <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">data_temp</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span> <span class="o">+</span> <span class="n">val_idx</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">candidate_feature</span> <span class="ow">in</span> <span class="n">candidate_features</span><span class="p">:</span>
+                <span class="n">candidate_feature</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">data_temp</span><span class="p">,</span> <span class="n">is_root</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidate_feature</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">results</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">tree_to_formula</span><span class="p">(</span><span class="n">candidate_feature</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+            <span class="n">exit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_calculate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidate_features</span><span class="p">,</span> <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">):</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candidate_features</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span> <span class="o">/</span> <span class="mi">4</span><span class="p">))</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candidate_features</span><span class="p">)</span> <span class="o">/</span> <span class="n">length</span><span class="p">))</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">candidate_features</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">candidate_features</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span><span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="n">n</span><span class="p">)</span> <span class="k">as</span> <span class="n">progress</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                        <span class="n">future</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_calculate_multiprocess</span><span class="p">,</span>
+                                           <span class="n">candidate_features</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">length</span><span class="p">:],</span>
+                                           <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">future</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_calculate_multiprocess</span><span class="p">,</span>
+                                           <span class="n">candidate_features</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">length</span><span class="p">:(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">length</span><span class="p">],</span>
+                                           <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">)</span>
+                    <span class="n">future</span><span class="o">.</span><span class="n">add_done_callback</span><span class="p">(</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">progress</span><span class="o">.</span><span class="n">update</span><span class="p">())</span>
+                    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">future</span><span class="p">)</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+                    <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">result</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span> <span class="nf">_calculate_and_evaluate_multiprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidate_features</span><span class="p">,</span> <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">data_temp</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span> <span class="o">+</span> <span class="n">val_idx</span><span class="p">]</span>
+            <span class="n">train_y</span> <span class="o">=</span> <span class="n">_label</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
+            <span class="n">val_y</span> <span class="o">=</span> <span class="n">_label</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">val_idx</span><span class="p">]</span>
+            <span class="n">train_init</span> <span class="o">=</span> <span class="n">_init_scores</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
+            <span class="n">val_init</span> <span class="o">=</span> <span class="n">_init_scores</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">val_idx</span><span class="p">]</span>
+            <span class="n">init_metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_init_metric</span><span class="p">(</span><span class="n">val_init</span><span class="p">,</span> <span class="n">val_y</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">candidate_feature</span> <span class="ow">in</span> <span class="n">candidate_features</span><span class="p">:</span>
+                <span class="n">candidate_feature</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">data_temp</span><span class="p">,</span> <span class="n">is_root</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate</span><span class="p">(</span><span class="n">candidate_feature</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">val_y</span><span class="p">,</span> <span class="n">train_init</span><span class="p">,</span> <span class="n">val_init</span><span class="p">,</span> <span class="n">init_metric</span><span class="p">)</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">candidate_feature</span><span class="p">,</span> <span class="n">score</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">results</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">tree_to_formula</span><span class="p">(</span><span class="n">candidate_feature</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+            <span class="n">exit</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_calculate_and_evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidate_features</span><span class="p">,</span> <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">):</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candidate_features</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span> <span class="o">/</span> <span class="mi">4</span><span class="p">))</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candidate_features</span><span class="p">)</span> <span class="o">/</span> <span class="n">length</span><span class="p">))</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">candidate_features</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">candidate_features</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span><span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+            <span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="n">n</span><span class="p">)</span> <span class="k">as</span> <span class="n">progress</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                        <span class="n">future</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_calculate_and_evaluate_multiprocess</span><span class="p">,</span>
+                                                 <span class="n">candidate_features</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">length</span><span class="p">:],</span>
+                                                 <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">future</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_calculate_and_evaluate_multiprocess</span><span class="p">,</span>
+                                                 <span class="n">candidate_features</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">length</span><span class="p">:(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">length</span><span class="p">],</span>
+                                                 <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">)</span>
+                    <span class="n">future</span><span class="o">.</span><span class="n">add_done_callback</span><span class="p">(</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">progress</span><span class="o">.</span><span class="n">update</span><span class="p">())</span>
+                    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">future</span><span class="p">)</span>
+                <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+                    <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">result</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Tianping Zhang.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

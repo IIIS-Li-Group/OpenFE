@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference &mdash; OpenFE 0.0.3 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Parameters Tuning" href="parameter_tuning.html" />
+    <link rel="prev" title="Quick Start" href="quick_start.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> OpenFE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quick_start.html">Quick Start</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#openfe.openfe"><code class="docutils literal notranslate"><span class="pre">openfe</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#openfe.openfe.fit"><code class="docutils literal notranslate"><span class="pre">openfe.fit()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#openfe.get_candidate_features"><code class="docutils literal notranslate"><span class="pre">get_candidate_features()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#openfe.transform"><code class="docutils literal notranslate"><span class="pre">transform()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="parameter_tuning.html">Parameters Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">Tutorials on Feature Generation and FAQ</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">OpenFE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li class="breadcrumb-item active">API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/openfe.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="openfe.openfe">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">openfe.</span></span><span class="sig-name descname"><span class="pre">openfe</span></span><a class="reference internal" href="_modules/openfe/openfe.html#openfe"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#openfe.openfe" title="Permalink to this definition"></a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="openfe.openfe.fit">
+<span class="sig-name descname"><span class="pre">fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrame</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidate_features_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_scores</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">categorical_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_columns</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_data_blocks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_candidate_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_boosting</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stage1_metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'predictive'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stage2_metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gain_importance'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stage2_params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_stage1</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_repeats</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/openfe/openfe.html#openfe.fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#openfe.openfe.fit" title="Permalink to this definition"></a></dt>
+<dd><p>Generate new features by the algorithm of OpenFE</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>pd.DataFrame</em>) – the input data</p></li>
+<li><p><strong>label</strong> (<em>pd.DataFrame</em>) – the target</p></li>
+<li><p><strong>task</strong> (<em>str</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – ‘classification’ or ‘regression’, if None, label with n_unique_values less than 20
+will be set to classification, else regression.</p></li>
+<li><p><strong>train_index</strong> (<em>pd.index</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – the index of the data for training purposes.</p></li>
+<li><p><strong>val_index</strong> (<em>pd.index</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – the index of the data for validation purposes. If train_index or val_index is None,
+we split the data into 0.8 (train) and 0.2 (val). It is recommended to pass in the index
+if the data has time series property.</p></li>
+<li><p><strong>candidate_features_list</strong> (<em>list</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – the candidate features list for filtering. If None, it will be generated
+automatically, and users can define their candidate features list according to
+their prior knowledge.</p></li>
+<li><p><strong>init_scores</strong> (<em>pd.DataFrame</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – the initial scores for feature boosting. Please see our paper for more details. If None,
+we generate initial scores by 5-fold cross-validation.</p></li>
+<li><p><strong>categorical_features</strong> (<em>list</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – a list of categorical features. If None, we detect categorical features by using
+data.select_dtypes(exclude=np.number).columns.to_list().</p></li>
+<li><p><strong>metric</strong> (<em>str</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – The metric for evaluating the performance of new features in feature boosting. Currently
+support [‘binary_logloss’, ‘multi_logloss’, ‘auc’, ‘rmse’]. The default metric is
+‘binary_logloss’ for binary-classification, ‘multi_logloss’ for multi-classification,
+and ‘rmse’ for regression tasks.</p></li>
+<li><p><strong>drop_columns</strong> (<em>list</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – A list of columns you would like to drop when building the LightGBM in stage2.
+These columns will still be used to generate candidate_features_list.</p></li>
+<li><p><strong>n_data_blocks</strong> (<em>int</em><em>, </em><em>optional</em><em> (</em><em>default=8</em><em>)</em>) – The number of data blocks for successive feature-wise halving. See more details in our
+paper. Should be 2^k (e.g., 1, 2, 4, 8, 16, 32, …). Larger values for faster speed,
+but may hurt the overall performance, especially when there are many useful
+candidate features.</p></li>
+<li><p><strong>min_candidate_features</strong> (<em>int</em><em>, </em><em>optional</em><em> (</em><em>default=2000</em><em>)</em>) – The minimum number of candidate features after successive feature-wise halving.
+It is used to early-stop successive feature-wise halving. When the number of
+candidate features is smaller than min_candidate_features, successive
+feature-wise halving will stop immediately.</p></li>
+<li><p><strong>feature_boosting</strong> (<em>bool</em><em>, </em><em>optional</em><em> (</em><em>default=False</em><em>)</em>) – Whether to use feature boosting. See more details in our paper.
+If False, the init_scores will be set the same as the default values in LightGBM.</p></li>
+<li><p><strong>stage1_metric</strong> (<em>str</em><em>, </em><em>optional</em><em> (</em><em>default='predictive'</em><em>)</em>) – The metric used for evaluating the features in stage1. Currently support
+[‘predictive’, ‘corr’, ‘mi’]. ‘predictive’ is the method described in the paper.
+‘corr’ is the Pearson correlation between the feature and the target.
+‘mi’ is the mutual information between the feature and the target.
+It is recommended to use the default ‘predictive’.</p></li>
+<li><p><strong>stage2_metric</strong> (<em>str</em><em>, </em><em>optional</em><em> (</em><em>default='gain_importance'</em><em>)</em>) – The feature importance used to rank the features in stage2. Currently support
+[‘gain_importance’, ‘permutation’].
+‘gain_importance’ is the same as the importance in LightGBM.
+‘permutation’ is another feature importance method. It is sometimes better than
+gain importance, but requires much more computational time.</p></li>
+<li><p><strong>stage2_params</strong> (<em>dict</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – The parameters for training LightGBM in stage2.</p></li>
+<li><p><strong>is_stage1</strong> (<em>bool</em><em>, </em><em>optional</em><em> (</em><em>default=True</em><em>)</em>) – Whether to use successive feature-wise halving to eliminate candidate features. If False,
+all the candidate features are calculated and used to train the LightGBM in stage2,
+which may require a large amount of memory as well as computational time.</p></li>
+<li><p><strong>n_repeats</strong> (<em>int</em><em>, </em><em>optional</em><em> (</em><em>default=1</em><em>)</em>) – The number of repeats in permutation. Only useful when stage2_metric is set to ‘permutation’.</p></li>
+<li><p><strong>n_jobs</strong> (<em>int</em><em>, </em><em>optional</em><em> (</em><em>default=1</em><em>)</em>) – The number of processes used for feature calculation and evaluation.</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em><em> (</em><em>default=1</em><em>)</em>) – Random number seed. This will seed everything.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>a list of new features, sorted by their importance (from most important to least important).</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<span class="target" id="module-openfe"></span><dl class="py function">
+<dt class="sig sig-object py" id="openfe.get_candidate_features">
+<span class="sig-prename descclassname"><span class="pre">openfe.</span></span><span class="sig-name descname"><span class="pre">get_candidate_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">numerical_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">categorical_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ordinal_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/openfe/openfe.html#get_candidate_features"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#openfe.get_candidate_features" title="Permalink to this definition"></a></dt>
+<dd><p>You can determine the list of candidate features yourself. This function returns a list of
+candidate features that can be fed into openfe.fit(candidate_features_list)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>numerical_features</strong> (<em>list</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – The numerical features in the data.</p></li>
+<li><p><strong>categorical_features</strong> (<em>list</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – The categorical features in the data.</p></li>
+<li><p><strong>ordinal_features</strong> (<em>list</em><em>, </em><em>optional</em><em> (</em><em>default=None</em><em>)</em>) – Ordinal features are numerical features with discrete values, such as age.
+Ordinal features are treated as both numerical and categorical features when generating
+candidate features.</p></li>
+<li><p><strong>order</strong> (<em>int</em><em>, </em><em>optional</em><em> (</em><em>default=1</em><em>)</em>) – The maximum order of the generated candidate features. A value larger than 1 may result
+in an extremely large number of candidate features.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>A list of candidate features.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="openfe.transform">
+<span class="sig-prename descclassname"><span class="pre">openfe.</span></span><span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_train</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_test</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_features_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/openfe/utils.html#transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#openfe.transform" title="Permalink to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Transform train and test data according to new features. Since there are global operators such as</dt><dd><p>‘GroupByThenMean’, train and test data need to be transformed together.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X_train</strong> – pd.DataFrame, the train data</p></li>
+<li><p><strong>X_test</strong> – pd.DataFrame, the test data</p></li>
+<li><p><strong>new_features_list</strong> – the new features to transform data.</p></li>
+<li><p><strong>n_jobs</strong> – the number of processes to calculate data</p></li>
+<li><p><strong>name</strong> – used for naming new features</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>X_train, X_test. The transformed train and test data.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="quick_start.html" class="btn btn-neutral float-left" title="Quick Start" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="parameter_tuning.html" class="btn btn-neutral float-right" title="Parameters Tuning" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Tianping Zhang.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

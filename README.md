@@ -40,7 +40,7 @@ It will install another python package different from ours.
 
 **A Quick Example**
 
-It only takes four lines of codes to generate features. First, we generate features by OpenFE
+It only takes four lines of codes to generate features by OpenFE. First, we generate features by OpenFE.
 Next, we augment the train and test data by the generated features.
 
 ```

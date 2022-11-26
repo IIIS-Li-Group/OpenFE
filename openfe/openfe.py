@@ -81,7 +81,8 @@ def get_candidate_features(numerical_features=None, categorical_features=None, o
 
     Returns
     -------
-    A list of candidate features.
+    candidate_features_list: list
+        A list of candidate features.
     '''
     if numerical_features is None: numerical_features = []
     if categorical_features is None: categorical_features = []
@@ -247,8 +248,8 @@ class openfe:
 
         Returns
         -------
-        a list of new features, sorted by their importance (from most important to least important).
-
+        new_features_list: list
+            a list of new features, sorted by their importance (from most important to least important).
         '''
 
         assert stage2_metric in ['gain_importance', 'permutation']

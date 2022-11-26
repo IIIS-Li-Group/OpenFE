@@ -5,3 +5,6 @@ lightgbm==3.3.2
 xgboost==1.5.2
 scipy==1.9.1
 tqdm
+sphinx==4.2.0
+sphinx_rtd_theme==1.0.0
+readthedocs-sphinx-search==0.1.1

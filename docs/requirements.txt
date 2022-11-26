@@ -8,4 +8,4 @@ tqdm
 sphinx==4.2.0
 sphinx_rtd_theme==1.0.0
 readthedocs-sphinx-search==0.1.1
-openfe
+git+https://github.com/ZhangTP1996/OpenFE.git

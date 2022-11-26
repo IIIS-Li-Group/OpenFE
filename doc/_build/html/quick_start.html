@@ -79,6 +79,8 @@
 pip install --upgrade openfe  <span class="c1"># or update if needed</span>
 </pre></div>
 </div>
+<p>Please do not use <strong>conda install openfe</strong> for installation.
+It will install another python package different from ours.</p>
 <p><strong>A Quick Example</strong>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>from openfe import openfe, transform
 
@@ -87,7 +89,9 @@ pip install --upgrade openfe  <span class="c1"># or update if needed</span>
 train_x, <span class="nv">test_x</span> <span class="o">=</span> transform<span class="o">(</span>train_x, test_x, features, <span class="nv">n_jobs</span><span class="o">=</span>n_jobs<span class="o">)</span> <span class="c1"># transform the train and test data according to generated features.</span>
 </pre></div>
 </div>
-<p>We provide an example using the standard california_housing dataset in <a class="reference external" href="https://github.com/ZhangTP1996/OpenFE/blob/master/examples/california_housing.py">this link</a>. A more complicated example demonstrating OpenFE can outperform machine learning experts in the IEEE-CIS Fraud Detection Kaggle competition is provided in <a class="reference external" href="https://github.com/ZhangTP1996/OpenFE/blob/master/examples/IEEE-CIS-Fraud-Detection/main.py">this link</a>.</p>
+<p>We provide an <a class="reference external" href="https://github.com/ZhangTP1996/OpenFE/blob/master/examples/california_housing.py">example</a> using the standard california_housing dataset.
+A more complicated <a class="reference external" href="https://github.com/ZhangTP1996/OpenFE/blob/master/examples/IEEE-CIS-Fraud-Detection/main.py">example</a> demonstrating OpenFE can outperform machine learning experts in the IEEE-CIS Fraud Detection Kaggle competition.
+Users can also refer to <a class="reference external" href="https://arxiv.org/abs/2211.12507">our paper</a> for more details of OpenFE.</p>
 <p><strong>Required Dependencies</strong>:</p>
 <ul class="simple">
 <li><p>Python&gt;=3.8</p></li>

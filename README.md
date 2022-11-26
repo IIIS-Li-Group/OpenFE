@@ -31,9 +31,9 @@ Get Started and Documentation
 
 It is recommended to use **pip** for installation.
 
-'''
-   pip install openfe            # normal install
-'''
+```
+pip install openfe
+```
 
 Please do not use **conda install openfe** for installation.
 It will install another python package different from ours.
@@ -43,14 +43,13 @@ It will install another python package different from ours.
 It only takes four lines of codes to generate features. First, we generate features by OpenFE
 Next, we augment the train and test data by the generated features.
 
-'''
+```
+from openfe import openfe, transform
 
-    from openfe import openfe, transform
-
-    ofe = openfe()
-    features = ofe.fit(data=train_x, label=train_y, n_jobs=n_jobs)  # generate new features
-    train_x, test_x = transform(train_x, test_x, features, n_jobs=n_jobs) # transform the train and test data according to generated features.
-'''
+ofe = openfe()
+features = ofe.fit(data=train_x, label=train_y, n_jobs=n_jobs)  # generate new features
+train_x, test_x = transform(train_x, test_x, features, n_jobs=n_jobs) # transform the train and test data according to generated features.
+```
 
 We provide an example using the standard california_housing dataset in 
 [this link](<https://github.com/ZhangTP1996/OpenFE/blob/master/examples/california_housing.py>). 

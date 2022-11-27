@@ -152,7 +152,8 @@
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
-<span class="sd">    A list of candidate features.</span>
+<span class="sd">    candidate_features_list: list</span>
+<span class="sd">        A list of candidate features.</span>
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="k">if</span> <span class="n">numerical_features</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">numerical_features</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="n">categorical_features</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> <span class="n">categorical_features</span> <span class="o">=</span> <span class="p">[]</span>
@@ -318,8 +319,8 @@
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        a list of new features, sorted by their importance (from most important to least important).</span>
-
+<span class="sd">        new_features_list: list</span>
+<span class="sd">            a list of new features, sorted by their importance (from most important to least important).</span>
 <span class="sd">        &#39;&#39;&#39;</span>
 
         <span class="k">assert</span> <span class="n">stage2_metric</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;gain_importance&#39;</span><span class="p">,</span> <span class="s1">&#39;permutation&#39;</span><span class="p">]</span>

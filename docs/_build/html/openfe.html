@@ -141,8 +141,11 @@ which may require a large amount of memory as well as computational time.</p></l
 <li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em><em> (</em><em>default=1</em><em>)</em>) – Random number seed. This will seed everything.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>a list of new features, sorted by their importance (from most important to least important).</p>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>new_features_list</strong> – a list of new features, sorted by their importance (from most important to least important).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list</p>
 </dd>
 </dl>
 </dd></dl>
@@ -166,8 +169,11 @@ candidate features.</p></li>
 in an extremely large number of candidate features.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>A list of candidate features.</p>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><strong>candidate_features_list</strong> – A list of candidate features.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>list</p>
 </dd>
 </dl>
 </dd></dl>
@@ -175,10 +181,8 @@ in an extremely large number of candidate features.</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="openfe.transform">
 <span class="sig-prename descclassname"><span class="pre">openfe.</span></span><span class="sig-name descname"><span class="pre">transform</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_train</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_test</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_features_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/openfe/utils.html#transform"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#openfe.transform" title="Permalink to this definition"></a></dt>
-<dd><dl class="simple">
-<dt>Transform train and test data according to new features. Since there are global operators such as</dt><dd><p>‘GroupByThenMean’, train and test data need to be transformed together.</p>
-</dd>
-</dl>
+<dd><p>Transform train and test data according to new features. Since there are global operators such as
+‘GroupByThenMean’, train and test data need to be transformed together.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">

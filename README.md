@@ -12,10 +12,10 @@ OpenFE: automated feature generation beyond expert-level performance
 
 OpenFE is a powerful framework for automated feature generation in tabular data. 
 OpenFE is easy-to-use, effective, and efficient with following advantages:
-- OpenFE covers 23 operators summarized from numerous Kaggle competitions to generate candidate features.
-- OpenFE supports binary-classification, multi-classification, and regression tasks.
 - OpenFE is accurate in retrieving effective candidate features for improving the learning performance of both GBDT and neural networks.
 - OpenFE is efficient and supports parallel computing.
+- OpenFE covers 23 operators summarized from numerous Kaggle competitions to generate candidate features.
+- OpenFE supports binary-classification, multi-classification, and regression tasks.
 
 For further details, please refer to [our paper](https://arxiv.org/abs/2211.12507). Extensive comparison experiments
 on public datasets show that OpenFE outperforms existing feature generation methods on both effectiveness and efficiency.

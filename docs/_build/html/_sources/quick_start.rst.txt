@@ -24,7 +24,7 @@ It will install another python package different from ours.
     train_x, test_x = transform(train_x, test_x, features, n_jobs=n_jobs) # transform the train and test data according to generated features.
 
 We provide an `example <https://github.com/IIIS-Li-Group/OpenFE/blob/master/examples/california_housing.py>`_ using the standard california_housing dataset.
-A more complicated `example <https://github.com/IIIS-Li-Group/OpenFE/blob/master/examples/IEEE-CIS-Fraud-Detection/main.py>`_ demonstrating OpenFE can outperform machine learning experts in the IEEE-CIS Fraud Detection Kaggle competition.
+A more complicated `example <https://github.com/IIIS-Li-Group/OpenFE/blob/master/examples/IEEE-CIS-Fraud-Detection/>`_ demonstrating OpenFE can outperform machine learning experts in the IEEE-CIS Fraud Detection Kaggle competition.
 Users can also refer to `our paper <https://arxiv.org/abs/2211.12507>`_ for more details of OpenFE.
 
 **Required Dependencies**\ :

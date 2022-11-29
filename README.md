@@ -55,5 +55,5 @@ train_x, test_x = transform(train_x, test_x, features, n_jobs=n_jobs) # transfor
 We provide an example using the standard california_housing dataset in 
 [this link](<https://github.com/IIIS-Li-Group/OpenFE/blob/master/examples/california_housing.py>). 
 A more complicated example demonstrating OpenFE can outperform machine learning experts in the IEEE-CIS Fraud Detection 
-Kaggle competition is provided in [this link](<https://github.com/IIIS-Li-Group/OpenFE/blob/master/examples/IEEE-CIS-Fraud-Detection/main.py>).
+Kaggle competition is provided in [this link](<https://github.com/IIIS-Li-Group/OpenFE/blob/master/examples/IEEE-CIS-Fraud-Detection/>).
 Users can also refer to our [documentation] for more advanced usage of OpenFE and FAQ about feature generation.

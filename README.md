@@ -1,12 +1,12 @@
 <div id="top" align="center">
 
-<img src=https://github.com/ZhangTP1996/OpenFE/blob/master/docs/logo/openfe.svg width=300 />
+<img src=https://github.com/IIIS-Li-Group/OpenFE/blob/master/docs/logo/openfe.svg width=300 />
 
 OpenFE: An efficient automated feature generation tool
 -----------------------------
 <h3> |<a href="https://arxiv.org/abs/2211.12507"> Paper </a> | 
 <a href="https://openfe-document.readthedocs.io/en/latest/"> Documentation </a> | 
-<a href="https://github.com/ZhangTP1996/OpenFE/tree/master/examples"> Examples </a> |  </h3>
+<a href="https://github.com/IIIS-Li-Group/OpenFE/tree/master/examples"> Examples </a> |  </h3>
 
 </div>
 
@@ -53,7 +53,7 @@ train_x, test_x = transform(train_x, test_x, features, n_jobs=n_jobs) # transfor
 ```
 
 We provide an example using the standard california_housing dataset in 
-[this link](<https://github.com/ZhangTP1996/OpenFE/blob/master/examples/california_housing.py>). 
+[this link](<https://github.com/IIIS-Li-Group/OpenFE/blob/master/examples/california_housing.py>). 
 A more complicated example demonstrating OpenFE can outperform machine learning experts in the IEEE-CIS Fraud Detection 
-Kaggle competition is provided in [this link](<https://github.com/ZhangTP1996/OpenFE/blob/master/examples/IEEE-CIS-Fraud-Detection/main.py>).
+Kaggle competition is provided in [this link](<https://github.com/IIIS-Li-Group/OpenFE/blob/master/examples/IEEE-CIS-Fraud-Detection/main.py>).
 Users can also refer to our [documentation] for more advanced usage of OpenFE and FAQ about feature generation.

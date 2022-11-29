@@ -21,7 +21,7 @@ setup(
       "scipy>=1.9.1",
       "tqdm",
   ],
-  url="https://github.com/ZhangTP1996/OpenFE",
+  url="https://github.com/IIIS-Li-Group/OpenFE/",
   packages=find_packages(),
   classifiers=[
   "Programming Language :: Python :: 3",

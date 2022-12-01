@@ -153,7 +153,7 @@ class openfe:
             stage2_params=None,
             is_stage1=True,
             n_repeats=1,
-            tmp_save_path='./openfe_tmp_data.feather',
+            tmp_save_path='./openfe_tmp_data_xx.feather',
             n_jobs=1,
             seed=1):
         ''' Generate new features by the algorithm of OpenFE

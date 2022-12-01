@@ -29,13 +29,15 @@ Users can also refer to `our paper <https://arxiv.org/abs/2211.12507>`_ for more
 
 **Required Dependencies**\ :
 
-* Python>=3.8
-* numpy>=1.22.3
-* pandas>=1.4.1
-* scikit-learn>=1.0.2
+* Python>=3.6
+* numpy>=1.19.3
+* pandas>=1.1.5
+* scikit-learn>=0.24.2
 * lightgbm>=3.3.2
-* scipy>=1.9.1
+* scipy>=1.5.4
+* xgboost>=1.5.2
 * tqdm
+* pyarrow
 
 
 

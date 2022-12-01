@@ -361,8 +361,12 @@ class openfe:
 
     def data_to_dataframe(self):
         try:
-            self.data = pd.DataFrame(self.data)
-            self.label = pd.DataFrame(self.label)
+            if not isinstance(self.data, pd.DataFrame) or not isinstance(self.label, pd.DataFrame):
+                warnings.warn("data and label should both be pd.DataFrame and have the same index!!!")
+            if not isinstance(self.data, pd.DataFrame):
+                self.data = pd.DataFrame(self.data)
+            if not isinstance(self.label, pd.DataFrame):
+                self.label = pd.DataFrame(self.label, index=self.data.index)
         except Exception as e:
             raise ValueError(f"Cannot transform data and label into dataframe due to error: {e}")
 

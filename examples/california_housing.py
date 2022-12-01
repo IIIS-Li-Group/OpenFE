@@ -31,6 +31,8 @@ if __name__ == '__main__':
     ofe = openfe()
     features = ofe.fit(data=train_x, label=train_y, n_jobs=n_jobs)
 
+    # OpenFE recommends a list of new features. We include the top 10
+    # generated features to see how they influence the model performance
     train_x, test_x = ofe.transform(train_x, test_x, ofe.new_features_list[:10], n_jobs=n_jobs)
     score = get_score(train_x, test_x, train_y, test_y)
     print("The MSE after feature generation is", score)

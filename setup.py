@@ -20,6 +20,7 @@ setup(
       "xgboost>=1.5.2",
       "scipy>=1.9.1",
       "tqdm",
+      "pyarrow",
   ],
   url="https://github.com/IIIS-Li-Group/OpenFE/",
   packages=find_packages(),

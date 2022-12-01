@@ -94,7 +94,10 @@ def split_num_cat_features(features_list):
     return num_features, cat_features
 
 
-def _cal(feature):
+def _cal(feature, n_train):
+    base_features = ['openfe_index']
+    base_features.extend(feature.get_fnode())
+    _data = pd.read_feather('./openfe_tmp_data.feather', columns=base_features).set_index('openfe_index')
     feature.calculate(_data, is_root=True)
     if (str(feature.data.dtype) == 'category') | (str(feature.data.dtype) == 'object'):
         pass
@@ -120,15 +123,15 @@ def transform(X_train, X_test, new_features_list, n_jobs, name=""):
     """
     if len(new_features_list) == 0:
         return X_train, X_test
-    global _data
-    global n_train
-    global _test_index
-    _data = pd.concat([X_train, X_test], axis=0)
+
+    data = pd.concat([X_train, X_test], axis=0)
+    data.index.name = 'openfe_index'
+    data.reset_index().to_feather('./openfe_tmp_data.feather')
     n_train = len(X_train)
     ex = ProcessPoolExecutor(n_jobs)
     results = []
     for feature in new_features_list:
-        results.append(ex.submit(_cal, feature))
+        results.append(ex.submit(_cal, feature, n_train))
     ex.shutdown(wait=True)
     _train = []
     _test = []

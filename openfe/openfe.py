@@ -1,4 +1,5 @@
 import gc
+import os
 import warnings
 import lightgbm as lgb
 import pandas as pd
@@ -152,6 +153,7 @@ class openfe:
             stage2_params=None,
             is_stage1=True,
             n_repeats=1,
+            tmp_save_path='./openfe_tmp_data.feather',
             n_jobs=1,
             seed=1):
         ''' Generate new features by the algorithm of OpenFE
@@ -240,6 +242,9 @@ class openfe:
         n_repeats: int, optional (default=1)
             The number of repeats in permutation. Only useful when stage2_metric is set to 'permutation'.
 
+        tmp_save_path: str, optional (default='./openfe_tmp_data.feather')
+            Temporary path to save data for multiprocessing.
+
         n_jobs: int, optional (default=1)
             The number of processes used for feature calculation and evaluation.
 
@@ -270,10 +275,12 @@ class openfe:
         self.stage2_params = stage2_params
         self.is_stage1 = is_stage1
         self.n_repeats = n_repeats
+        self.tmp_save_path = tmp_save_path
         self.n_jobs = n_jobs
         self.seed = seed
 
         self.data_to_dataframe()
+        self.process_and_save_data()
 
         self.task = self.get_task(task)
         self.metric = self.get_metric(metric)
@@ -289,9 +296,13 @@ class openfe:
         self.new_features_list = [feature for feature, _ in self.new_features_scores_list]
         for node, score in self.new_features_scores_list:
             node.delete()
+        os.remove(self.tmp_save_path)
         gc.collect()
         return self.new_features_list
 
+    def process_and_save_data(self):
+        self.data.index.name = 'openfe_index'
+        self.data.reset_index().to_feather(self.tmp_save_path)
 
     def get_index(self, train_index, val_index):
         if train_index is None or val_index is None:
@@ -418,13 +429,6 @@ class openfe:
                               " But the init_scores are between 0 and 1.")
 
     def stage1_select(self, ratio=0.5):
-        global _data
-        global _label
-        global _init_scores
-        _data = self.data.copy()
-        _label = self.label.copy()
-        _init_scores = self.init_scores.copy()
-
         if self.is_stage1 is False:
             train_index = _subsample(self.train_index, self.n_data_blocks)[0]
             val_index = _subsample(self.val_index, self.n_data_blocks)[0]
@@ -516,17 +520,6 @@ class openfe:
         return results
 
 
-    def _cal(self, feature, data_tmp, n_train):
-        feature.calculate(data_tmp, is_root=True)
-        if (str(feature.data.dtype) == 'category') | (str(feature.data.dtype) == 'object'):
-            pass
-        else:
-            feature.data = feature.data.replace([-np.inf, np.inf], np.nan)
-            feature.data = feature.data.fillna(0)
-        return feature.data.values.ravel()[:n_train], \
-               feature.data.values.ravel()[n_train:], \
-               tree_to_formula(feature)
-
     def get_init_metric(self, pred, label):
         if self.metric == 'binary_logloss':
             init_metric = log_loss(label, scipy.special.expit(pred))
@@ -600,7 +593,15 @@ class openfe:
     def _calculate_multiprocess(self, candidate_features, train_idx, val_idx):
         try:
             results = []
-            data_temp = _data.loc[train_idx + val_idx]
+            base_features = {'openfe_index'}
+            for candidate_feature in candidate_features:
+                base_features |= set(candidate_feature.get_fnode())
+
+            data = pd.read_feather(self.tmp_save_path, columns=list(base_features)).set_index('openfe_index')
+            data_temp = data.loc[train_idx + val_idx]
+            del data
+            gc.collect()
+
             for candidate_feature in candidate_features:
                 candidate_feature.calculate(data_temp, is_root=True)
                 results.append(candidate_feature)
@@ -638,11 +639,19 @@ class openfe:
     def _calculate_and_evaluate_multiprocess(self, candidate_features, train_idx, val_idx):
         try:
             results = []
-            data_temp = _data.loc[train_idx + val_idx]
-            train_y = _label.loc[train_idx]
-            val_y = _label.loc[val_idx]
-            train_init = _init_scores.loc[train_idx]
-            val_init = _init_scores.loc[val_idx]
+            base_features = {'openfe_index'}
+            for candidate_feature in candidate_features:
+                base_features |= set(candidate_feature.get_fnode())
+
+            data = pd.read_feather(self.tmp_save_path, columns=list(base_features)).set_index('openfe_index')
+            data_temp = data.loc[train_idx + val_idx]
+            del data
+            gc.collect()
+
+            train_y = self.label.loc[train_idx]
+            val_y = self.label.loc[val_idx]
+            train_init = self.init_scores.loc[train_idx]
+            val_init = self.init_scores.loc[val_idx]
             init_metric = self.get_init_metric(val_init, val_y)
             for candidate_feature in candidate_features:
                 candidate_feature.calculate(data_temp, is_root=True)
@@ -650,7 +659,6 @@ class openfe:
                 results.append([candidate_feature, score])
             return results
         except:
-            print(tree_to_formula(candidate_feature))
             print(traceback.format_exc())
             exit()
 
@@ -678,6 +686,72 @@ class openfe:
                 for r in results:
                     res.extend(r.result())
         return res
+
+    def _trans(self, feature, n_train):
+        base_features = ['openfe_index']
+        base_features.extend(feature.get_fnode())
+        _data = pd.read_feather(self.tmp_save_path, columns=base_features).set_index('openfe_index')
+        feature.calculate(_data, is_root=True)
+        if (str(feature.data.dtype) == 'category') | (str(feature.data.dtype) == 'object'):
+            pass
+        else:
+            feature.data = feature.data.replace([-np.inf, np.inf], np.nan)
+            feature.data = feature.data.fillna(0)
+        return ((str(feature.data.dtype) == 'category') or (str(feature.data.dtype) == 'object')), \
+               feature.data.values.ravel()[:n_train], \
+               feature.data.values.ravel()[n_train:], \
+               tree_to_formula(feature)
+
+    def transform(self, X_train, X_test, new_features_list, n_jobs, name=""):
+        """ Transform train and test data according to new features. Since there are global operators such as
+        'GroupByThenMean', train and test data need to be transformed together.
+
+        :param X_train: pd.DataFrame, the train data
+        :param X_test:  pd.DataFrame, the test data
+        :param new_features_list: the new features to transform data.
+        :param n_jobs: the number of processes to calculate data
+        :param name: used for naming new features
+        :return: X_train, X_test. The transformed train and test data.
+        """
+        if len(new_features_list) == 0:
+            return X_train, X_test
+
+        data = pd.concat([X_train, X_test], axis=0)
+        data.index.name = 'openfe_index'
+        data.reset_index().to_feather(self.tmp_save_path)
+        n_train = len(X_train)
+        ex = ProcessPoolExecutor(n_jobs)
+        results = []
+        for feature in new_features_list:
+            results.append(ex.submit(self._trans, feature, n_train))
+        ex.shutdown(wait=True)
+        _train = []
+        _test = []
+        names = []
+        names_map = {}
+        cat_feats = []
+        for i, res in enumerate(results):
+            is_cat, d1, d2, f = res.result()
+            names.append('autoFE_f_%d' % i + name)
+            names_map['autoFE_f_%d' % i + name] = f
+            _train.append(d1)
+            _test.append(d2)
+            if is_cat: cat_feats.append('autoFE_f_%d' % i + name)
+        _train = np.vstack(_train)
+        _test = np.vstack(_test)
+        _train = pd.DataFrame(_train.T, columns=names, index=X_train.index)
+        _test = pd.DataFrame(_test.T, columns=names, index=X_test.index)
+        for c in _train.columns:
+            if c in cat_feats:
+                _train[c] = _train[c].astype('category')
+                _test[c] = _test[c].astype('category')
+            else:
+                _train[c] = _train[c].astype('float')
+                _test[c] = _test[c].astype('float')
+        _train = pd.concat([X_train, _train], axis=1)
+        _test = pd.concat([X_test, _test], axis=1)
+        os.remove(self.tmp_save_path)
+        return _train, _test
 
 
 

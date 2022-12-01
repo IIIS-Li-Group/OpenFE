@@ -28,7 +28,7 @@ class Node(object):
         fnode_list = []
         for child in self.children:
             fnode_list.extend(child.get_fnode())
-        return fnode_list
+        return list(set(fnode_list))
 
     def delete(self):
         self.data = None

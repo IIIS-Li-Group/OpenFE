@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
   name="openfe",
-  version="0.0.5",
+  version="0.0.6",
   author="Tianping Zhang",
   author_email="ztp18@mails.tsinghua.edu.cn",
   description="OpenFE: automated feature generation beyond expert-level performance",

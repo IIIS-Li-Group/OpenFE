@@ -45,7 +45,7 @@ class Node(object):
             if self.name == "abs":
                 new_data = d.abs()
             elif self.name == "log":
-                new_data = np.log(np.abs(d))
+                new_data = np.log(np.abs(d.replace(0, np.nan)))
             elif self.name == "sqrt":
                 new_data = np.sqrt(np.abs(d))
             elif self.name == "square":

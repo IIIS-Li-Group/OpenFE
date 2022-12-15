@@ -7,7 +7,6 @@ from sklearn.model_selection import train_test_split, StratifiedKFold, KFold
 from .FeatureGenerator import *
 import random
 from concurrent.futures import ProcessPoolExecutor
-from datetime import datetime
 import traceback
 from .utils import tree_to_formula, check_xor, formula_to_tree
 from sklearn.inspection import permutation_importance
@@ -155,7 +154,8 @@ class openfe:
             n_repeats=1,
             tmp_save_path='./openfe_tmp_data_xx.feather',
             n_jobs=1,
-            seed=1):
+            seed=1,
+            verbose=True):
         ''' Generate new features by the algorithm of OpenFE
 
         Parameters
@@ -251,6 +251,9 @@ class openfe:
         seed: int, optional (default=1)
             Random number seed. This will seed everything.
 
+        verbose: bool, optional (default=True)
+            Whether to display information.
+
         Returns
         -------
         new_features_list: list
@@ -278,6 +281,7 @@ class openfe:
         self.tmp_save_path = tmp_save_path
         self.n_jobs = n_jobs
         self.seed = seed
+        self.verbose = verbose
 
         self.data_to_dataframe()
         self.process_and_save_data()
@@ -289,9 +293,11 @@ class openfe:
         self.train_index, self.val_index = self.get_index(train_index, val_index)
         self.init_scores = self.get_init_score(init_scores)
 
-        print("The number of candidate features is", len(self.candidate_features_list))
-
+        self.myprint(f"The number of candidate features is {len(self.candidate_features_list)}")
+        self.myprint("Start stage I selection.")
         self.candidate_features_list = self.stage1_select()
+        self.myprint(f"The number of remaining candidate features is {len(self.candidate_features_list)}")
+        self.myprint("Start stage II selection.")
         self.new_features_scores_list = self.stage2_select()
         self.new_features_list = [feature for feature, _ in self.new_features_scores_list]
         for node, score in self.new_features_scores_list:
@@ -299,6 +305,10 @@ class openfe:
         os.remove(self.tmp_save_path)
         gc.collect()
         return self.new_features_list
+
+    def myprint(self, s):
+        if self.verbose:
+            print(s)
 
     def process_and_save_data(self):
         self.data.index.name = 'openfe_index'
@@ -461,16 +471,17 @@ class openfe:
                 train_idx = train_index_samples[-1]
                 val_idx = val_index_samples[-1]
                 idx = len(train_index_samples)
-            else:
-                deleted = [[tree_to_formula(node), score] for node, score in candidate_features_scores[n_reserved_features:]]
-                deleted = np.array(deleted)
+                self.myprint("Meet early-stopping in successive feature-wise halving.")
             candidate_features_list = [item[0] for item in candidate_features_scores[:n_reserved_features]]
             del candidate_features_scores[n_reserved_features:]; gc.collect()
 
             results = self._calculate_and_evaluate(candidate_features_list, train_idx, val_idx)
             candidate_features_scores = sorted(results, key=lambda x: x[1], reverse=True)
 
-        return [item for item in candidate_features_scores if item[1] > 0]
+        return_results = [item for item in candidate_features_scores if item[1] > 0]
+        if not return_results:
+            return_results = [item for item in candidate_features_scores[:100]]
+        return return_results
 
     def stage2_select(self):
         data_new = []
@@ -496,6 +507,8 @@ class openfe:
 
         train_x = data_new.loc[self.train_index]
         val_x = data_new.loc[self.val_index]
+
+        self.myprint("Finish data processing.")
         if self.stage2_params is None:
             params = {"n_estimators": 1000, "importance_type": "gain", "num_leaves": 16,
                       "seed": 1, "n_jobs": self.n_jobs}
@@ -543,6 +556,8 @@ class openfe:
         start_n = len(candidate_features_scores)
         if candidate_features_scores:
             pre_score = candidate_features_scores[0][1]
+        else:
+            return candidate_features_scores
         i = 1
         while i < len(candidate_features_scores):
             now_score = candidate_features_scores[i][1]
@@ -552,6 +567,7 @@ class openfe:
                 pre_score = now_score
                 i += 1
         end_n = len(candidate_features_scores)
+        self.myprint(f"{start_n-end_n} same features have been deleted.")
         return candidate_features_scores
 
     def _evaluate(self, candidate_feature, train_y, val_y, train_init, val_init, init_metric):
@@ -590,9 +606,10 @@ class openfe:
                 score = r[0]
             else:
                 raise NotImplementedError("Cannot recognize filter_metric %s." % self.stage1_metric)
+            return score
         except:
             print(traceback.format_exc())
-        return score
+            exit()
 
     def _calculate_multiprocess(self, candidate_features, train_idx, val_idx):
         try:
@@ -611,7 +628,6 @@ class openfe:
                 results.append(candidate_feature)
             return results
         except:
-            print(tree_to_formula(candidate_feature))
             print(traceback.format_exc())
             exit()
 

@@ -1,3 +1,4 @@
+import traceback
 from .FeatureGenerator import Node, FNode
 from concurrent.futures import ProcessPoolExecutor
 import pandas as pd
@@ -95,15 +96,19 @@ def split_num_cat_features(features_list):
 
 
 def _cal(feature, n_train):
-    base_features = ['openfe_index']
-    base_features.extend(feature.get_fnode())
-    _data = pd.read_feather('./openfe_tmp_data.feather', columns=base_features).set_index('openfe_index')
-    feature.calculate(_data, is_root=True)
-    if (str(feature.data.dtype) == 'category') | (str(feature.data.dtype) == 'object'):
-        pass
-    else:
-        feature.data = feature.data.replace([-np.inf, np.inf], np.nan)
-        feature.data = feature.data.fillna(0)
+    try:
+        base_features = ['openfe_index']
+        base_features.extend(feature.get_fnode())
+        _data = pd.read_feather('./openfe_tmp_data.feather', columns=base_features).set_index('openfe_index')
+        feature.calculate(_data, is_root=True)
+        if (str(feature.data.dtype) == 'category') | (str(feature.data.dtype) == 'object'):
+            pass
+        else:
+            feature.data = feature.data.replace([-np.inf, np.inf], np.nan)
+            feature.data = feature.data.fillna(0)
+    except:
+        print(traceback.format_exc())
+        exit()
     return ((str(feature.data.dtype) == 'category') or (str(feature.data.dtype) == 'object')), \
            feature.data.values.ravel()[:n_train], \
            feature.data.values.ravel()[n_train:], \

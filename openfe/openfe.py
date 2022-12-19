@@ -15,6 +15,7 @@ from sklearn.metrics import mean_squared_error, log_loss, roc_auc_score
 import scipy.special
 from copy import deepcopy
 from tqdm import tqdm
+from datetime import datetime
 
 
 def _enumerate(current_order_num_features, lower_order_num_features,
@@ -708,15 +709,19 @@ class openfe:
         return res
 
     def _trans(self, feature, n_train):
-        base_features = ['openfe_index']
-        base_features.extend(feature.get_fnode())
-        _data = pd.read_feather(self.tmp_save_path, columns=base_features).set_index('openfe_index')
-        feature.calculate(_data, is_root=True)
-        if (str(feature.data.dtype) == 'category') | (str(feature.data.dtype) == 'object'):
-            pass
-        else:
-            feature.data = feature.data.replace([-np.inf, np.inf], np.nan)
-            feature.data = feature.data.fillna(0)
+        try:
+            base_features = ['openfe_index']
+            base_features.extend(feature.get_fnode())
+            _data = pd.read_feather(self.tmp_save_path, columns=base_features).set_index('openfe_index')
+            feature.calculate(_data, is_root=True)
+            if (str(feature.data.dtype) == 'category') | (str(feature.data.dtype) == 'object'):
+                pass
+            else:
+                feature.data = feature.data.replace([-np.inf, np.inf], np.nan)
+                feature.data = feature.data.fillna(0)
+        except:
+            print(traceback.format_exc())
+            exit()
         return ((str(feature.data.dtype) == 'category') or (str(feature.data.dtype) == 'object')), \
                feature.data.values.ravel()[:n_train], \
                feature.data.values.ravel()[n_train:], \
@@ -740,11 +745,15 @@ class openfe:
         data.index.name = 'openfe_index'
         data.reset_index().to_feather(self.tmp_save_path)
         n_train = len(X_train)
+
+        self.myprint("Start transforming data.")
+        start = datetime.now()
         ex = ProcessPoolExecutor(n_jobs)
         results = []
         for feature in new_features_list:
             results.append(ex.submit(self._trans, feature, n_train))
         ex.shutdown(wait=True)
+        self.myprint(f"Time spent calculating new features {datetime.now()-start}.")
         _train = []
         _test = []
         names = []
@@ -770,6 +779,7 @@ class openfe:
                 _test[c] = _test[c].astype('float')
         _train = pd.concat([X_train, _train], axis=1)
         _test = pd.concat([X_test, _test], axis=1)
+        self.myprint("Finish transformation.")
         os.remove(self.tmp_save_path)
         return _train, _test
 

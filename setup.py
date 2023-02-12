@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
   name="openfe",
-  version="0.0.6",
+  version="0.0.8",
   author="Tianping Zhang",
   author_email="ztp18@mails.tsinghua.edu.cn",
   description="OpenFE: automated feature generation beyond expert-level performance",
@@ -17,7 +17,7 @@ setup(
       "pandas>=1.1.5",
       "scikit_learn>=0.24.2",
       "lightgbm>=3.3.2",
-      "xgboost>=1.5.2",
+      # "xgboost>=1.5.2",
       "scipy>=1.5.4",
       "tqdm",
       "pyarrow",

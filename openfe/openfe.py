@@ -331,7 +331,9 @@ class openfe:
             ordinal_features = []
             numerical_features = []
             for feature in self.data.columns:
-                if self.data[feature].nunique() <= 100:
+                if feature in self.categorical_features:
+                    continue
+                elif self.data[feature].nunique() <= 100:
                     ordinal_features.append(feature)
                 else:
                     numerical_features.append(feature)

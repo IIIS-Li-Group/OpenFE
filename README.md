@@ -16,6 +16,7 @@ OpenFE is easy-to-use, effective, and efficient with following advantages:
 - OpenFE is efficient and supports parallel computing.
 - OpenFE covers 23 useful and effective operators for generating candidate features.
 - OpenFE supports binary-classification, multi-classification, and regression tasks.
+- OpenFE can automatically handle missing values and categorical features.
 
 For further details, please refer to [the paper](https://arxiv.org/abs/2211.12507). 
 

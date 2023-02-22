@@ -15,6 +15,7 @@ from sklearn.metrics import mean_squared_error, log_loss, roc_auc_score
 import scipy.special
 from copy import deepcopy
 from tqdm import tqdm
+# import tracemalloc
 from datetime import datetime
 
 
@@ -311,6 +312,11 @@ class openfe:
         if self.verbose:
             print(s)
 
+    # def monitor_memory(self):
+    #     peak_memory = tracemalloc.get_traced_memory()
+    #     print(peak_memory)
+    #     self.myprint(f"Peak memory usage: {peak_memory[1] / 1024 / 1024:.2f} MB")
+
     def process_and_save_data(self):
         self.data.index.name = 'openfe_index'
         self.data.reset_index().to_feather(self.tmp_save_path)
@@ -481,19 +487,25 @@ class openfe:
             results = self._calculate_and_evaluate(candidate_features_list, train_idx, val_idx)
             candidate_features_scores = sorted(results, key=lambda x: x[1], reverse=True)
 
-        return_results = [item for item in candidate_features_scores if item[1] > 0]
+        return_results = [item[0] for item in candidate_features_scores if item[1] > 0]
         if not return_results:
-            return_results = [item for item in candidate_features_scores[:100]]
+            return_results = [item[0] for item in candidate_features_scores[:100]]
         return return_results
 
     def stage2_select(self):
         data_new = []
         new_features = []
-        for feature, score in self.candidate_features_list:
+        self.candidate_features_list = self._calculate(self.candidate_features_list,
+                                                       self.train_index.to_list(),
+                                                       self.val_index.to_list())
+        index_tmp = self.candidate_features_list[0].data.index
+        for feature in self.candidate_features_list:
             new_features.append(tree_to_formula(feature))
             data_new.append(feature.data.values)
+            feature.delete()
+        gc.collect()
         data_new = np.vstack(data_new)
-        data_new = pd.DataFrame(data_new.T, index=self.candidate_features_list[0][0].data.index,
+        data_new = pd.DataFrame(data_new.T, index=index_tmp,
                                 columns=['autoFE-%d' % i for i in range(len(new_features))])
         data_new = pd.concat([data_new, self.data], axis=1)
         for f in self.categorical_features:
@@ -508,9 +520,10 @@ class openfe:
         train_init = self.init_scores.loc[self.train_index]
         val_init = self.init_scores.loc[self.val_index]
 
-        train_x = data_new.loc[self.train_index]
-        val_x = data_new.loc[self.val_index]
-
+        train_x = data_new.loc[self.train_index].copy()
+        val_x = data_new.loc[self.val_index].copy()
+        del data_new
+        gc.collect()
         self.myprint("Finish data processing.")
         if self.stage2_params is None:
             params = {"n_estimators": 1000, "importance_type": "gain", "num_leaves": 16,
@@ -628,6 +641,7 @@ class openfe:
 
             for candidate_feature in candidate_features:
                 candidate_feature.calculate(data_temp, is_root=True)
+                candidate_feature.f_delete()
                 results.append(candidate_feature)
             return results
         except:
@@ -639,8 +653,8 @@ class openfe:
         length = int(np.ceil(len(candidate_features) / self.n_jobs / 4))
         n = int(np.ceil(len(candidate_features) / length))
         random.shuffle(candidate_features)
-        for f in candidate_features:
-            f.delete()
+        # for f in candidate_features:
+        #     f.delete()
         with ProcessPoolExecutor(max_workers=self.n_jobs) as ex:
             with tqdm(total=n) as progress:
                 for i in range(n):
@@ -679,6 +693,7 @@ class openfe:
             for candidate_feature in candidate_features:
                 candidate_feature.calculate(data_temp, is_root=True)
                 score = self._evaluate(candidate_feature, train_y, val_y, train_init, val_init, init_metric)
+                candidate_feature.delete()
                 results.append([candidate_feature, score])
             return results
         except:

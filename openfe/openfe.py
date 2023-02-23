@@ -285,10 +285,11 @@ class openfe:
         self.seed = seed
         self.verbose = verbose
 
+        self.task = self.get_task(task)
         self.data_to_dataframe()
+        self.process_label()
         self.process_and_save_data()
 
-        self.task = self.get_task(task)
         self.metric = self.get_metric(metric)
         self.categorical_features = self.get_categorical_features(categorical_features)
         self.candidate_features_list = self.get_candidate_features(candidate_features_list)
@@ -316,6 +317,12 @@ class openfe:
     #     peak_memory = tracemalloc.get_traced_memory()
     #     print(peak_memory)
     #     self.myprint(f"Peak memory usage: {peak_memory[1] / 1024 / 1024:.2f} MB")
+
+    def process_label(self):
+        if self.task == "regression":
+            return
+        else:
+            self.label[self.label.columns[0]] = self.label[self.label.columns[0]].astype('category').cat.codes
 
     def process_and_save_data(self):
         self.data.index.name = 'openfe_index'
@@ -555,7 +562,7 @@ class openfe:
 
     def get_init_metric(self, pred, label):
         if self.metric == 'binary_logloss':
-            init_metric = log_loss(label, scipy.special.expit(pred))
+            init_metric = log_loss(label, scipy.special.expit(pred), labels=[0, 1])
         elif self.metric == 'multi_logloss':
             init_metric = log_loss(label, scipy.special.softmax(pred, axis=1),
                                    labels=list(range(pred.shape[1])))

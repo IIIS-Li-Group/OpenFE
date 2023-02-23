@@ -557,7 +557,8 @@ class openfe:
         if self.metric == 'binary_logloss':
             init_metric = log_loss(label, scipy.special.expit(pred))
         elif self.metric == 'multi_logloss':
-            init_metric = log_loss(label, scipy.special.softmax(pred, axis=1))
+            init_metric = log_loss(label, scipy.special.softmax(pred, axis=1),
+                                   labels=list(range(pred.shape[1])))
         elif self.metric == 'rmse':
             init_metric = mean_squared_error(label, pred, squared=False)
         elif self.metric == 'auc':

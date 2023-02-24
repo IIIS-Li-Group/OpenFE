@@ -285,8 +285,8 @@ class openfe:
         self.seed = seed
         self.verbose = verbose
 
-        self.task = self.get_task(task)
         self.data_to_dataframe()
+        self.task = self.get_task(task)
         self.process_label()
         self.process_and_save_data()
 
@@ -320,7 +320,7 @@ class openfe:
 
     def process_label(self):
         if self.task == "regression":
-            return
+            pass
         else:
             self.label[self.label.columns[0]] = self.label[self.label.columns[0]].astype('category').cat.codes
 

@@ -17,6 +17,8 @@ from copy import deepcopy
 from tqdm import tqdm
 # import tracemalloc
 from datetime import datetime
+import warnings
+warnings.filterwarnings(action='ignore', category=UserWarning)
 
 
 def _enumerate(current_order_num_features, lower_order_num_features,
@@ -424,8 +426,8 @@ class openfe:
                     X_train, y_train = data.iloc[train_index], label.iloc[train_index]
                     X_val, y_val = data.iloc[val_index], label.iloc[val_index]
 
-                    gbm.fit(X_train, y_train,
-                            eval_set=[[X_val, y_val]], callbacks=[lgb.early_stopping(200)])
+                    gbm.fit(X_train, y_train.values.ravel(),
+                            eval_set=[[X_val, y_val.values.ravel()]], callbacks=[lgb.early_stopping(200)])
 
                     if use_train:
                         init_scores[train_index] += (gbm.predict_proba(X_train, raw_score=True) if self.task == "classification" else \
@@ -543,9 +545,9 @@ class openfe:
             gbm = lgb.LGBMClassifier(**params)
         else:
             gbm = lgb.LGBMRegressor(**params)
-        gbm.fit(train_x, train_y, init_score=train_init,
+        gbm.fit(train_x, train_y.values.ravel(), init_score=train_init,
                 eval_init_score=[val_init],
-                eval_set=[(val_x, val_y)],
+                eval_set=[(val_x, val_y.values.ravel())],
                 callbacks=[lgb.early_stopping(50, verbose=False)])
         results = []
         if self.stage2_metric == 'gain_importance':
@@ -607,9 +609,9 @@ class openfe:
                     gbm = lgb.LGBMClassifier(**params)
                 else:
                     gbm = lgb.LGBMRegressor(**params)
-                gbm.fit(train_x, train_y, init_score=train_init,
+                gbm.fit(train_x, train_y.values.ravel(), init_score=train_init,
                         eval_init_score=[val_init],
-                        eval_set=[(val_x, val_y)],
+                        eval_set=[(val_x, val_y.values.ravel())],
                         callbacks=[lgb.early_stopping(3, verbose=False)])
                 key = list(gbm.best_score_['valid_0'].keys())[0]
                 if self.metric in ['auc']:

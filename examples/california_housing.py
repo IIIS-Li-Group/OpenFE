@@ -2,7 +2,7 @@
 # sys.path.append('../')
 import pandas as pd
 from sklearn.datasets import fetch_california_housing
-from openfe import openfe, tree_to_formula, transform
+from openfe import OpenFE, tree_to_formula, transform
 from sklearn.model_selection import train_test_split
 import lightgbm as lgb
 from sklearn.metrics import mean_squared_error
@@ -17,6 +17,7 @@ def get_score(train_x, test_x, train_y, test_y):
     score = mean_squared_error(test_y, pred)
     return score
 
+
 if __name__ == '__main__':
     n_jobs = 4
     data = fetch_california_housing(as_frame=True).frame
@@ -28,7 +29,7 @@ if __name__ == '__main__':
     score = get_score(train_x, test_x, train_y, test_y)
     print("The MSE before feature generation is", score)
     # feature generation
-    ofe = openfe()
+    ofe = OpenFE()
     ofe.fit(data=train_x, label=train_y, n_jobs=n_jobs)
 
     # OpenFE recommends a list of new features. We include the top 10
@@ -39,3 +40,4 @@ if __name__ == '__main__':
     print("The top 10 generated features are")
     for feature in ofe.new_features_list[:10]:
         print(tree_to_formula(feature))
+

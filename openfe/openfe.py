@@ -135,7 +135,7 @@ def _subsample(iterators, n_data_blocks):
     return results
 
 
-class openfe:
+class OpenFE:
     def __init__(self):
         pass
 

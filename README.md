@@ -46,9 +46,9 @@ It only takes four lines of codes to generate features by OpenFE. First, we gene
 Next, we augment the train and test data by the generated features.
 
 ```
-from openfe import openfe, transform
+from openfe import OpenFE, transform
 
-ofe = openfe()
+ofe = OpenFE()
 features = ofe.fit(data=train_x, label=train_y, n_jobs=n_jobs)  # generate new features
 train_x, test_x = transform(train_x, test_x, features, n_jobs=n_jobs) # transform the train and test data according to generated features.
 ```

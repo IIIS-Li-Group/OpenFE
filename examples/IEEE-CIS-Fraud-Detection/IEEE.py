@@ -2,12 +2,13 @@ import xgboost as xgb
 import numpy as np, pandas as pd, os, gc
 from sklearn.model_selection import GroupKFold
 from sklearn.metrics import roc_auc_score, log_loss
-from openfe import openfe, get_candidate_features, transform, tree_to_formula, formula_to_tree
+from openfe import OpenFE, get_candidate_features, transform, tree_to_formula, formula_to_tree
 import warnings
 from IEEE_utils import *
 import random
 import scipy.special
 from multiprocessing import cpu_count
+# from memory_profiler import memory_usage
 warnings.filterwarnings("ignore")
 random.seed(1)
 np.random.seed(1)
@@ -204,7 +205,7 @@ def automatic_FE(X_train, X_test, y_train):
                                                      categorical_features=categorical_features,
                                                      ordinal_features=ordinal_features)
     np.save('./all_candidate_features.npy', np.array([tree_to_formula(node) for node in candidate_features_list]))
-    ofe = openfe()
+    ofe = OpenFE()
     features = ofe.fit(data=X_train.loc[label.index], label=label,
                        init_scores=oof_proba,
                        candidate_features_list=candidate_features_list,
@@ -328,6 +329,13 @@ def train_and_predict(X_train, X_test, y_train, init=False, seed=1):
     return sample_submission
 
 
+def run():
+    X_train, X_test, y_train = prepare_data()
+    print("Finish preparing data.")
+
+    X_train, X_test = automatic_FE(X_train, X_test, y_train)
+
+
 if __name__ == '__main__':
     # Please first download data from https://www.kaggle.com/competitions/ieee-fraud-detection/data
     # and place the Kaggle data into './data/' folder.
@@ -354,3 +362,5 @@ if __name__ == '__main__':
         sample_submission = train_and_predict(X_train, X_test, y_train)
         _save = './results/sub_xgb_expertFE.csv'
         sample_submission.to_csv(_save, index=False)
+    # mem_usage = memory_usage((run, ), interval=1)
+    # print(mem_usage)

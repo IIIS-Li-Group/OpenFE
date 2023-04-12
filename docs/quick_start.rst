@@ -17,9 +17,9 @@ It will install another python package different from ours.
 
 .. code-block:: bash
 
-    from openfe import openfe, transform
+    from openfe import OpenFE, transform
 
-    ofe = openfe()
+    ofe = OpenFE()
     features = ofe.fit(data=train_x, label=train_y, n_jobs=n_jobs)  # generate new features
     train_x, test_x = transform(train_x, test_x, features, n_jobs=n_jobs) # transform the train and test data according to generated features.
 

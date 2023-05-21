@@ -31,9 +31,8 @@ improvement than the features provided by the first-place team in the competitio
 
 
 # 🏴󠁶󠁵󠁭󠁡󠁰󠁿 Get Started and Documentation
------------------------------
 
-**Installation**
+## Installation
 
 It is recommended to use **pip** for installation.
 
@@ -44,7 +43,7 @@ pip install openfe
 Please do not use **conda install openfe** for installation.
 It will install another python package different from ours.
 
-**A Quick Example**
+## A Quick Example
 
 It only takes four lines of codes to generate features by OpenFE. First, we generate features by OpenFE.
 Next, we augment the train and test data by the generated features.

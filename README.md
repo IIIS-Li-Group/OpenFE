@@ -30,7 +30,7 @@ improvement than the features provided by the first-place team in the competitio
 - [**2023-04-26**]: OpenFE has been accepted by ICML2023!
 
 
-Get Started and Documentation
+# 🏴󠁶󠁵󠁭󠁡󠁰󠁿 Get Started and Documentation
 -----------------------------
 
 **Installation**

@@ -105,7 +105,7 @@ def _cal(feature, n_train):
             pass
         else:
             feature.data = feature.data.replace([-np.inf, np.inf], np.nan)
-            feature.data = feature.data.fillna(0)
+            # feature.data = feature.data.fillna(0)
     except:
         print(traceback.format_exc())
         exit()

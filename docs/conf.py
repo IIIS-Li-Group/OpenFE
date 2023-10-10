@@ -7,9 +7,9 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'OpenFE'
-copyright = '2022, Tianping Zhang'
+copyright = '2023, Tianping Zhang'
 author = 'Tianping Zhang'
-release = '0.0.4'
+release = '0.0.11'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

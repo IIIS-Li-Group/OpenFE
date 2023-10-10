@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Parameters Tuning &mdash; OpenFE 0.0.4 documentation</title>
+  <title>Parameters Tuning &mdash; OpenFE 0.0.11 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,9 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -30,17 +28,21 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> OpenFE
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            OpenFE
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quick_start.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="openfe.html">API Reference</a></li>
@@ -75,7 +77,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Parameters Tuning</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/parameter_tuning.rst.txt" rel="nofollow"> View page source</a>
@@ -87,36 +89,36 @@
            <div itemprop="articleBody">
              
   <section id="parameters-tuning">
-<h1>Parameters Tuning<a class="headerlink" href="#parameters-tuning" title="Permalink to this heading"></a></h1>
+<h1>Parameters Tuning<a class="headerlink" href="#parameters-tuning" title="Permalink to this headline"></a></h1>
 <p>This page contains parameters tuning guides for different scenarios.</p>
 <section id="for-faster-speed">
-<h2>For Faster Speed<a class="headerlink" href="#for-faster-speed" title="Permalink to this heading"></a></h2>
+<h2>For Faster Speed<a class="headerlink" href="#for-faster-speed" title="Permalink to this headline"></a></h2>
 <section id="add-more-computational-resources">
-<h3>Add More Computational Resources<a class="headerlink" href="#add-more-computational-resources" title="Permalink to this heading"></a></h3>
+<h3>Add More Computational Resources<a class="headerlink" href="#add-more-computational-resources" title="Permalink to this headline"></a></h3>
 <p>On systems where it is available, OpenFE uses multiprocessing to parallelize the calculation and evaluation of new features. The maximum number of threads used by OpenFE is controlled by the parameter <code class="docutils literal notranslate"><span class="pre">n_jobs</span></code>. For best performance, set this to the number of <strong>real</strong> CPU cores available.</p>
 </section>
 <section id="increase-n-data-blocks">
-<h3>Increase <code class="docutils literal notranslate"><span class="pre">n_data_blocks</span></code><a class="headerlink" href="#increase-n-data-blocks" title="Permalink to this heading"></a></h3>
-<p>This parameter is an integer that controls the number of data blocks the data is split into for successive feature-wise halving. The overall complexity of OpenFE is <span class="math notranslate nohighlight">\(O(q2^{-q}\cdot mn^2)\)</span>, where <span class="math notranslate nohighlight">\(m\)</span> is the number of features, <span class="math notranslate nohighlight">\(n\)</span> is the number of samples, and <span class="math notranslate nohighlight">\(2^q\)</span> is the number of data blocks. However, setting <code class="docutils literal notranslate"><span class="pre">n_data_blocks</span></code> to a large value can achieve faster speed, but may hurt the overall performance since useful candidate features may be discarded during successive feature-wise halving. This is a trade-off between efficiency and effectiveness. Besides, setting <code class="docutils literal notranslate"><span class="pre">n_data_blocks</span></code> to a large value will result in few candidate features left for stage2 selection. This can be controlled by setting the parameter <code class="docutils literal notranslate"><span class="pre">min_candidate_features</span></code> to early-stop the successive feature-wise halving.</p>
+<h3>Increase <code class="docutils literal notranslate"><span class="pre">n_data_blocks</span></code><a class="headerlink" href="#increase-n-data-blocks" title="Permalink to this headline"></a></h3>
+<p>This parameter is an integer that controls the number of data blocks the data is split into for successive feature-wise halving. The overall complexity of OpenFE is <span class="math notranslate nohighlight">\(O(q2^{-q}\cdot mn^2)\)</span>, where <span class="math notranslate nohighlight">\(m\)</span> is the number of features, <span class="math notranslate nohighlight">\(n\)</span> is the number of samples, and <span class="math notranslate nohighlight">\(2^q\)</span> is the number of data blocks. Although increasing the value of <code class="docutils literal notranslate"><span class="pre">n_data_blocks</span></code> can speed up computation, doing so may have a negative impact on overall performance because important candidate features may be discarded during successive feature-wise halving. This is a trade-off between efficiency and effectiveness. Besides, setting <code class="docutils literal notranslate"><span class="pre">n_data_blocks</span></code> to a large value will result in few candidate features left for stage2 selection. This can be controlled by setting the parameter <code class="docutils literal notranslate"><span class="pre">min_candidate_features</span></code> to early-stop the successive feature-wise halving.</p>
 </section>
 <section id="perform-feature-selection-before-feature-generation">
-<h3>Perform Feature Selection Before Feature Generation<a class="headerlink" href="#perform-feature-selection-before-feature-generation" title="Permalink to this heading"></a></h3>
-<p>Another way to speed up is to perform feature selection and remove redundant features before feature generation. This can reduce the number of candidate features to achieve speed up. However, this way of speeding up may also hurt the performance, because uninformative features may also yield informative candidate features after transformation. In a Diabetes dataset, for example, when the goal is to forecast if a patient will be readmitted to the hospital, the feature ‘patient id’ is useless. However, ‘freq(patient id),’ which is the number of times the patient has been admitted to the hospital, is a strong predictor of whether the patient would be readmitted. An alternative way to  is to determine the <code class="docutils literal notranslate"><span class="pre">candidate_features_list</span></code> yourself by <code class="docutils literal notranslate"><span class="pre">openfe.get_candidate_features()</span></code>.</p>
-<p>In a word, there is no free speeding up method. If there is, we would have been glad to implement it in our algorithm.</p>
+<h3>Perform Feature Selection Before Feature Generation<a class="headerlink" href="#perform-feature-selection-before-feature-generation" title="Permalink to this headline"></a></h3>
+<p>Another way to speed up is to perform feature selection and remove redundant features before feature generation. This can reduce the number of candidate features to speed up. However, this method of speeding up may also hurt the performance, because uninformative features may also yield informative candidate features after transformation. In a Diabetes dataset, for example, when the goal is to forecast if a patient will be readmitted to the hospital, the feature ‘patient id’ is useless. However, ‘freq(patient id)’, which is the number of times the patient has been admitted to the hospital, is a strong predictor of whether the patient would be readmitted. An alternative way to perform feature selection is to determine the <code class="docutils literal notranslate"><span class="pre">candidate_features_list</span></code> yourself by <code class="docutils literal notranslate"><span class="pre">openfe.get_candidate_features()</span></code>.</p>
+<p>In a word, there is no free way to accelerate. If there was, we would have been happy to incorporate it into our algorithm.</p>
 </section>
 </section>
 <section id="for-better-performance">
-<h2>For Better Performance<a class="headerlink" href="#for-better-performance" title="Permalink to this heading"></a></h2>
+<h2>For Better Performance<a class="headerlink" href="#for-better-performance" title="Permalink to this headline"></a></h2>
 <section id="decrease-n-data-blocks-or-increase-min-candidate-features">
-<h3>Decrease <code class="docutils literal notranslate"><span class="pre">n_data_blocks</span></code> Or Increase <code class="docutils literal notranslate"><span class="pre">min_candidate_features</span></code><a class="headerlink" href="#decrease-n-data-blocks-or-increase-min-candidate-features" title="Permalink to this heading"></a></h3>
+<h3>Decrease <code class="docutils literal notranslate"><span class="pre">n_data_blocks</span></code> Or Increase <code class="docutils literal notranslate"><span class="pre">min_candidate_features</span></code><a class="headerlink" href="#decrease-n-data-blocks-or-increase-min-candidate-features" title="Permalink to this headline"></a></h3>
 <p>This is particularly important if there are many useful candidate features in the pool of candidate features. However, changing these two parameters may not make a difference if there isn’t many useful candidate features.</p>
 </section>
 <section id="perform-feature-selection-on-generated-features">
-<h3>Perform Feature Selection on Generated Features<a class="headerlink" href="#perform-feature-selection-on-generated-features" title="Permalink to this heading"></a></h3>
+<h3>Perform Feature Selection on Generated Features<a class="headerlink" href="#perform-feature-selection-on-generated-features" title="Permalink to this headline"></a></h3>
 <p>In our examples, we directly include the top generated features recommended by OpenFE. Users can also perform more delicate feature selection methods (such as forward feature selection) to achieve better performance.</p>
 </section>
 <section id="set-feature-boosting-to-true-or-false-and-see-which-provides-better-results">
-<h3>Set <code class="docutils literal notranslate"><span class="pre">feature_boosting</span></code> to True or False and See Which Provides Better Results<a class="headerlink" href="#set-feature-boosting-to-true-or-false-and-see-which-provides-better-results" title="Permalink to this heading"></a></h3>
+<h3>Set <code class="docutils literal notranslate"><span class="pre">feature_boosting</span></code> to True or False and See Which Provides Better Results<a class="headerlink" href="#set-feature-boosting-to-true-or-false-and-see-which-provides-better-results" title="Permalink to this headline"></a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">feature_boosting</span></code> is an important parameter that determines whether to use feature boosting in OpenFE (see more details in our paper). In general, using feature boosting yields better results on most datasets. However,  on some of the datasets, we find that disabling feature boosting can provide better results. We are planning to investigate this issue further in the future.</p>
 </section>
 </section>
@@ -133,7 +135,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2022, Tianping Zhang.</p>
+    <p>&#169; Copyright 2023, Tianping Zhang.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

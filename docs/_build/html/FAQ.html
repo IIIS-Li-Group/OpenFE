@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tutorials on Feature Generation and FAQ &mdash; OpenFE 0.0.4 documentation</title>
+  <title>Tutorials on Feature Generation and FAQ &mdash; OpenFE 0.0.11 documentation</title>
       <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -14,9 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
         <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -29,17 +27,21 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="index.html" class="icon icon-home"> OpenFE
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            OpenFE
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quick_start.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="openfe.html">API Reference</a></li>
@@ -67,7 +69,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a></li>
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
       <li class="breadcrumb-item active">Tutorials on Feature Generation and FAQ</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/FAQ.rst.txt" rel="nofollow"> View page source</a>
@@ -79,24 +81,24 @@
            <div itemprop="articleBody">
              
   <section id="tutorials-on-feature-generation-and-faq">
-<h1>Tutorials on Feature Generation and FAQ<a class="headerlink" href="#tutorials-on-feature-generation-and-faq" title="Permalink to this heading"></a></h1>
+<h1>Tutorials on Feature Generation and FAQ<a class="headerlink" href="#tutorials-on-feature-generation-and-faq" title="Permalink to this headline"></a></h1>
 <section id="why-is-openfe-ineffective-for-my-dataset">
-<h2>Why Is OpenFE Ineffective For My Dataset?<a class="headerlink" href="#why-is-openfe-ineffective-for-my-dataset" title="Permalink to this heading"></a></h2>
+<h2>Why Is OpenFE Ineffective For My Dataset?<a class="headerlink" href="#why-is-openfe-ineffective-for-my-dataset" title="Permalink to this headline"></a></h2>
 <p>There are two possible reasons. The first reason is that OpenFE fails to recall effective candidate features due to improper parameters. Please refer to our guidance on parameter tuning. The second reason is that there are no effective candidate features, since feature generation is not beneficial for all datasets. Our past experience on numerous real-world datasets indicates that feature generation is beneficial for 50%–70% of datasets.</p>
 </section>
 <section id="how-many-new-features-should-i-include-in-the-dataset">
-<h2>How Many New Features Should I Include In The Dataset?<a class="headerlink" href="#how-many-new-features-should-i-include-in-the-dataset" title="Permalink to this heading"></a></h2>
+<h2>How Many New Features Should I Include In The Dataset?<a class="headerlink" href="#how-many-new-features-should-i-include-in-the-dataset" title="Permalink to this headline"></a></h2>
 <p>This relates to the topic of feature selection methods. Users can try to include 10, 20, 30, … new features and see which provides the best results. It is recommended to try more delicate feature selection methods (such as forward feature selection) to achieve better performance.</p>
 </section>
 <section id="what-is-a-high-order-feature">
-<h2>What is a high-order feature?<a class="headerlink" href="#what-is-a-high-order-feature" title="Permalink to this heading"></a></h2>
+<h2>What is a high-order feature?<a class="headerlink" href="#what-is-a-high-order-feature" title="Permalink to this headline"></a></h2>
 <p>A first-order feature is transformed by the base features (zero-order) using one operators,
 such as <span class="math notranslate nohighlight">\(f_1 + f_2\)</span>. A second-order feature is transformed by the first-order features,
 such as <span class="math notranslate nohighlight">\((f_1 + f_2)\times f_3\)</span>, and so on. High-order features refer to features
 with orders <span class="math notranslate nohighlight">\(\geq 2\)</span>.</p>
 </section>
 <section id="are-high-order-features-beneficial-for-model-performance">
-<h2>Are high-order features beneficial for model performance?<a class="headerlink" href="#are-high-order-features-beneficial-for-model-performance" title="Permalink to this heading"></a></h2>
+<h2>Are high-order features beneficial for model performance?<a class="headerlink" href="#are-high-order-features-beneficial-for-model-performance" title="Permalink to this headline"></a></h2>
 <p>According on our previous experience with feature generation, looking for high-order features may not
 result in a noticeable improvement on the majority of datasets.
 First, we do not find that generating high-order features is useful for all the
@@ -114,7 +116,7 @@ first-order components <span class="math notranslate nohighlight">\(f_1\times f_
 and <span class="math notranslate nohighlight">\(f_2\times f_3\)</span>.</p>
 </section>
 <section id="how-to-generate-high-order-features">
-<h2>How to generate high-order features?<a class="headerlink" href="#how-to-generate-high-order-features" title="Permalink to this heading"></a></h2>
+<h2>How to generate high-order features?<a class="headerlink" href="#how-to-generate-high-order-features" title="Permalink to this headline"></a></h2>
 <p>Users can first generate effective first-order features, and then include
 the first-order features into the base features to generate second-order features,
 and so on.</p>
@@ -131,7 +133,7 @@ and so on.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2022, Tianping Zhang.</p>
+    <p>&#169; Copyright 2023, Tianping Zhang.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

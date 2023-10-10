@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>openfe.openfe &mdash; OpenFE 0.0.4 documentation</title>
+  <title>openfe.openfe &mdash; OpenFE 0.0.11 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -13,9 +13,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
-        <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -26,17 +24,21 @@
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
-            <a href="../../index.html" class="icon icon-home"> OpenFE
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            OpenFE
           </a>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
-    <input type="text" name="q" placeholder="Search docs" />
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+              <p class="caption"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../quick_start.html">Quick Start</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../openfe.html">API Reference</a></li>
@@ -57,7 +59,7 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home"></a></li>
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
       <li class="breadcrumb-item active">openfe.openfe</li>
       <li class="wy-breadcrumbs-aside">
@@ -70,6 +72,7 @@
              
   <h1>Source code for openfe.openfe</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">gc</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">import</span> <span class="nn">lightgbm</span> <span class="k">as</span> <span class="nn">lgb</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
@@ -77,7 +80,6 @@
 <span class="kn">from</span> <span class="nn">.FeatureGenerator</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">import</span> <span class="nn">random</span>
 <span class="kn">from</span> <span class="nn">concurrent.futures</span> <span class="kn">import</span> <span class="n">ProcessPoolExecutor</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">tree_to_formula</span><span class="p">,</span> <span class="n">check_xor</span><span class="p">,</span> <span class="n">formula_to_tree</span>
 <span class="kn">from</span> <span class="nn">sklearn.inspection</span> <span class="kn">import</span> <span class="n">permutation_importance</span>
@@ -86,6 +88,10 @@
 <span class="kn">import</span> <span class="nn">scipy.special</span>
 <span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
 <span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="c1"># import tracemalloc</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="n">action</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_enumerate</span><span class="p">(</span><span class="n">current_order_num_features</span><span class="p">,</span> <span class="n">lower_order_num_features</span><span class="p">,</span>
@@ -202,11 +208,11 @@
     <span class="k">return</span> <span class="n">results</span>
 
 
-<div class="viewcode-block" id="openfe"><a class="viewcode-back" href="../../openfe.html#openfe.openfe">[docs]</a><span class="k">class</span> <span class="nc">openfe</span><span class="p">:</span>
+<span class="k">class</span> <span class="nc">OpenFE</span><span class="p">:</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span>
 
-<div class="viewcode-block" id="openfe.fit"><a class="viewcode-back" href="../../openfe.html#openfe.openfe.fit">[docs]</a>    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+    <span class="k">def</span> <span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">data</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
             <span class="n">task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
             <span class="n">train_index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -223,8 +229,10 @@
             <span class="n">stage2_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">is_stage1</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="n">n_repeats</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">tmp_save_path</span><span class="o">=</span><span class="s1">&#39;./openfe_tmp_data_xx.feather&#39;</span><span class="p">,</span>
             <span class="n">n_jobs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-            <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">seed</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&#39;&#39;&#39; Generate new features by the algorithm of OpenFE</span>
 
 <span class="sd">        Parameters</span>
@@ -311,11 +319,17 @@
 <span class="sd">        n_repeats: int, optional (default=1)</span>
 <span class="sd">            The number of repeats in permutation. Only useful when stage2_metric is set to &#39;permutation&#39;.</span>
 
+<span class="sd">        tmp_save_path: str, optional (default=&#39;./openfe_tmp_data.feather&#39;)</span>
+<span class="sd">            Temporary path to save data for multiprocessing.</span>
+
 <span class="sd">        n_jobs: int, optional (default=1)</span>
 <span class="sd">            The number of processes used for feature calculation and evaluation.</span>
 
 <span class="sd">        seed: int, optional (default=1)</span>
 <span class="sd">            Random number seed. This will seed everything.</span>
+
+<span class="sd">        verbose: bool, optional (default=True)</span>
+<span class="sd">            Whether to display information.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -341,28 +355,53 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">stage2_params</span> <span class="o">=</span> <span class="n">stage2_params</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">is_stage1</span> <span class="o">=</span> <span class="n">is_stage1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_repeats</span> <span class="o">=</span> <span class="n">n_repeats</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tmp_save_path</span> <span class="o">=</span> <span class="n">tmp_save_path</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span> <span class="o">=</span> <span class="n">n_jobs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">verbose</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">data_to_dataframe</span><span class="p">()</span>
-
         <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_task</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_label</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_and_save_data</span><span class="p">()</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_metric</span><span class="p">(</span><span class="n">metric</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">categorical_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_categorical_features</span><span class="p">(</span><span class="n">categorical_features</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_candidate_features</span><span class="p">(</span><span class="n">candidate_features_list</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">train_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">val_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_index</span><span class="p">(</span><span class="n">train_index</span><span class="p">,</span> <span class="n">val_index</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">init_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_init_score</span><span class="p">(</span><span class="n">init_scores</span><span class="p">)</span>
 
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;The number of candidate features is&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">))</span>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">myprint</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The number of candidate features is </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">myprint</span><span class="p">(</span><span class="s2">&quot;Start stage I selection.&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage1_select</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">myprint</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The number of remaining candidate features is </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">myprint</span><span class="p">(</span><span class="s2">&quot;Start stage II selection.&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">new_features_scores_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage2_select</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">new_features_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">feature</span> <span class="k">for</span> <span class="n">feature</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_features_scores_list</span><span class="p">]</span>
         <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_features_scores_list</span><span class="p">:</span>
             <span class="n">node</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmp_save_path</span><span class="p">)</span>
         <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_features_list</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_features_list</span>
 
+    <span class="k">def</span> <span class="nf">myprint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="c1"># def monitor_memory(self):</span>
+    <span class="c1">#     peak_memory = tracemalloc.get_traced_memory()</span>
+    <span class="c1">#     print(peak_memory)</span>
+    <span class="c1">#     self.myprint(f&quot;Peak memory usage: {peak_memory[1] / 1024 / 1024:.2f} MB&quot;)</span>
+
+    <span class="k">def</span> <span class="nf">process_label</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s2">&quot;regression&quot;</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;category&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">cat</span><span class="o">.</span><span class="n">codes</span>
+
+    <span class="k">def</span> <span class="nf">process_and_save_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;openfe_index&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span><span class="o">.</span><span class="n">to_feather</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmp_save_path</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">get_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_index</span><span class="p">,</span> <span class="n">val_index</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">train_index</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">val_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -380,7 +419,9 @@
             <span class="n">ordinal_features</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">numerical_features</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">100</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">feature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_features</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="mi">100</span><span class="p">:</span>
                     <span class="n">ordinal_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">numerical_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
@@ -421,8 +462,12 @@
 
     <span class="k">def</span> <span class="nf">data_to_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;data and label should both be pd.DataFrame and have the same index!!!&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot transform data and label into dataframe due to error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
@@ -454,8 +499,8 @@
                     <span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">train_index</span><span class="p">],</span> <span class="n">label</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">train_index</span><span class="p">]</span>
                     <span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">val_index</span><span class="p">],</span> <span class="n">label</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="n">val_index</span><span class="p">]</span>
 
-                    <span class="n">gbm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span>
-                            <span class="n">eval_set</span><span class="o">=</span><span class="p">[[</span><span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span><span class="p">]],</span> <span class="n">callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">lgb</span><span class="o">.</span><span class="n">early_stopping</span><span class="p">(</span><span class="mi">200</span><span class="p">)])</span>
+                    <span class="n">gbm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">y_train</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span>
+                            <span class="n">eval_set</span><span class="o">=</span><span class="p">[[</span><span class="n">X_val</span><span class="p">,</span> <span class="n">y_val</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">()]],</span> <span class="n">callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">lgb</span><span class="o">.</span><span class="n">early_stopping</span><span class="p">(</span><span class="mi">200</span><span class="p">)])</span>
 
                     <span class="k">if</span> <span class="n">use_train</span><span class="p">:</span>
                         <span class="n">init_scores</span><span class="p">[</span><span class="n">train_index</span><span class="p">]</span> <span class="o">+=</span> <span class="p">(</span><span class="n">gbm</span><span class="o">.</span><span class="n">predict_proba</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span> <span class="n">raw_score</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="s2">&quot;classification&quot;</span> <span class="k">else</span> \
@@ -489,13 +534,6 @@
                               <span class="s2">&quot; But the init_scores are between 0 and 1.&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">stage1_select</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ratio</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
-        <span class="k">global</span> <span class="n">_data</span>
-        <span class="k">global</span> <span class="n">_label</span>
-        <span class="k">global</span> <span class="n">_init_scores</span>
-        <span class="n">_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">_label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">_init_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scores</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_stage1</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
             <span class="n">train_index</span> <span class="o">=</span> <span class="n">_subsample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_data_blocks</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">val_index</span> <span class="o">=</span> <span class="n">_subsample</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">val_index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_data_blocks</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -524,25 +562,32 @@
                 <span class="n">train_idx</span> <span class="o">=</span> <span class="n">train_index_samples</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
                 <span class="n">val_idx</span> <span class="o">=</span> <span class="n">val_index_samples</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
                 <span class="n">idx</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">train_index_samples</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">deleted</span> <span class="o">=</span> <span class="p">[[</span><span class="n">tree_to_formula</span><span class="p">(</span><span class="n">node</span><span class="p">),</span> <span class="n">score</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">candidate_features_scores</span><span class="p">[</span><span class="n">n_reserved_features</span><span class="p">:]]</span>
-                <span class="n">deleted</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">deleted</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">myprint</span><span class="p">(</span><span class="s2">&quot;Meet early-stopping in successive feature-wise halving.&quot;</span><span class="p">)</span>
             <span class="n">candidate_features_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">candidate_features_scores</span><span class="p">[:</span><span class="n">n_reserved_features</span><span class="p">]]</span>
             <span class="k">del</span> <span class="n">candidate_features_scores</span><span class="p">[</span><span class="n">n_reserved_features</span><span class="p">:];</span> <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
 
             <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_and_evaluate</span><span class="p">(</span><span class="n">candidate_features_list</span><span class="p">,</span> <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">)</span>
             <span class="n">candidate_features_scores</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="p">[</span><span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">candidate_features_scores</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">return_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">candidate_features_scores</span> <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">return_results</span><span class="p">:</span>
+            <span class="n">return_results</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">candidate_features_scores</span><span class="p">[:</span><span class="mi">100</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="n">return_results</span>
 
     <span class="k">def</span> <span class="nf">stage2_select</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">data_new</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">new_features</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">feature</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">,</span>
+                                                       <span class="bp">self</span><span class="o">.</span><span class="n">train_index</span><span class="o">.</span><span class="n">to_list</span><span class="p">(),</span>
+                                                       <span class="bp">self</span><span class="o">.</span><span class="n">val_index</span><span class="o">.</span><span class="n">to_list</span><span class="p">())</span>
+        <span class="n">index_tmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span>
+        <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">:</span>
             <span class="n">new_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tree_to_formula</span><span class="p">(</span><span class="n">feature</span><span class="p">))</span>
             <span class="n">data_new</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+            <span class="n">feature</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
         <span class="n">data_new</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">data_new</span><span class="p">)</span>
-        <span class="n">data_new</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data_new</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">candidate_features_list</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+        <span class="n">data_new</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">data_new</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index_tmp</span><span class="p">,</span>
                                 <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;autoFE-</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">new_features</span><span class="p">))])</span>
         <span class="n">data_new</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">data_new</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_features</span><span class="p">:</span>
@@ -557,8 +602,11 @@
         <span class="n">train_init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scores</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">train_index</span><span class="p">]</span>
         <span class="n">val_init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scores</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">val_index</span><span class="p">]</span>
 
-        <span class="n">train_x</span> <span class="o">=</span> <span class="n">data_new</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">train_index</span><span class="p">]</span>
-        <span class="n">val_x</span> <span class="o">=</span> <span class="n">data_new</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">val_index</span><span class="p">]</span>
+        <span class="n">train_x</span> <span class="o">=</span> <span class="n">data_new</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">train_index</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">val_x</span> <span class="o">=</span> <span class="n">data_new</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">val_index</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">del</span> <span class="n">data_new</span>
+        <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">myprint</span><span class="p">(</span><span class="s2">&quot;Finish data processing.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage2_params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;n_estimators&quot;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s2">&quot;importance_type&quot;</span><span class="p">:</span> <span class="s2">&quot;gain&quot;</span><span class="p">,</span> <span class="s2">&quot;num_leaves&quot;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>
                       <span class="s2">&quot;seed&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;n_jobs&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span><span class="p">}</span>
@@ -570,9 +618,9 @@
             <span class="n">gbm</span> <span class="o">=</span> <span class="n">lgb</span><span class="o">.</span><span class="n">LGBMClassifier</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">gbm</span> <span class="o">=</span> <span class="n">lgb</span><span class="o">.</span><span class="n">LGBMRegressor</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
-        <span class="n">gbm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">init_score</span><span class="o">=</span><span class="n">train_init</span><span class="p">,</span>
+        <span class="n">gbm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">init_score</span><span class="o">=</span><span class="n">train_init</span><span class="p">,</span>
                 <span class="n">eval_init_score</span><span class="o">=</span><span class="p">[</span><span class="n">val_init</span><span class="p">],</span>
-                <span class="n">eval_set</span><span class="o">=</span><span class="p">[(</span><span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="p">)],</span>
+                <span class="n">eval_set</span><span class="o">=</span><span class="p">[(</span><span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">())],</span>
                 <span class="n">callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">lgb</span><span class="o">.</span><span class="n">early_stopping</span><span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)])</span>
         <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage2_metric</span> <span class="o">==</span> <span class="s1">&#39;gain_importance&#39;</span><span class="p">:</span>
@@ -587,22 +635,12 @@
         <span class="k">return</span> <span class="n">results</span>
 
 
-    <span class="k">def</span> <span class="nf">_cal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature</span><span class="p">,</span> <span class="n">data_tmp</span><span class="p">,</span> <span class="n">n_train</span><span class="p">):</span>
-        <span class="n">feature</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">data_tmp</span><span class="p">,</span> <span class="n">is_root</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;category&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;object&#39;</span><span class="p">):</span>
-            <span class="k">pass</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">feature</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">replace</span><span class="p">([</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-            <span class="n">feature</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[:</span><span class="n">n_train</span><span class="p">],</span> \
-               <span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[</span><span class="n">n_train</span><span class="p">:],</span> \
-               <span class="n">tree_to_formula</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
-
     <span class="k">def</span> <span class="nf">get_init_metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;binary_logloss&#39;</span><span class="p">:</span>
-            <span class="n">init_metric</span> <span class="o">=</span> <span class="n">log_loss</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">expit</span><span class="p">(</span><span class="n">pred</span><span class="p">))</span>
+            <span class="n">init_metric</span> <span class="o">=</span> <span class="n">log_loss</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">expit</span><span class="p">(</span><span class="n">pred</span><span class="p">),</span> <span class="n">labels</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;multi_logloss&#39;</span><span class="p">:</span>
-            <span class="n">init_metric</span> <span class="o">=</span> <span class="n">log_loss</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">init_metric</span> <span class="o">=</span> <span class="n">log_loss</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">scipy</span><span class="o">.</span><span class="n">special</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+                                   <span class="n">labels</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">pred</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])))</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;rmse&#39;</span><span class="p">:</span>
             <span class="n">init_metric</span> <span class="o">=</span> <span class="n">mean_squared_error</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">pred</span><span class="p">,</span> <span class="n">squared</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">==</span> <span class="s1">&#39;auc&#39;</span><span class="p">:</span>
@@ -617,6 +655,8 @@
         <span class="n">start_n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidate_features_scores</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">candidate_features_scores</span><span class="p">:</span>
             <span class="n">pre_score</span> <span class="o">=</span> <span class="n">candidate_features_scores</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">candidate_features_scores</span>
         <span class="n">i</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidate_features_scores</span><span class="p">):</span>
             <span class="n">now_score</span> <span class="o">=</span> <span class="n">candidate_features_scores</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
@@ -626,6 +666,7 @@
                 <span class="n">pre_score</span> <span class="o">=</span> <span class="n">now_score</span>
                 <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="n">end_n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidate_features_scores</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">myprint</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">start_n</span><span class="o">-</span><span class="n">end_n</span><span class="si">}</span><span class="s2"> same features have been deleted.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">candidate_features_scores</span>
 
     <span class="k">def</span> <span class="nf">_evaluate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidate_feature</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">val_y</span><span class="p">,</span> <span class="n">train_init</span><span class="p">,</span> <span class="n">val_init</span><span class="p">,</span> <span class="n">init_metric</span><span class="p">):</span>
@@ -641,9 +682,9 @@
                     <span class="n">gbm</span> <span class="o">=</span> <span class="n">lgb</span><span class="o">.</span><span class="n">LGBMClassifier</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="n">gbm</span> <span class="o">=</span> <span class="n">lgb</span><span class="o">.</span><span class="n">LGBMRegressor</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
-                <span class="n">gbm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">init_score</span><span class="o">=</span><span class="n">train_init</span><span class="p">,</span>
+                <span class="n">gbm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">train_x</span><span class="p">,</span> <span class="n">train_y</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">init_score</span><span class="o">=</span><span class="n">train_init</span><span class="p">,</span>
                         <span class="n">eval_init_score</span><span class="o">=</span><span class="p">[</span><span class="n">val_init</span><span class="p">],</span>
-                        <span class="n">eval_set</span><span class="o">=</span><span class="p">[(</span><span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="p">)],</span>
+                        <span class="n">eval_set</span><span class="o">=</span><span class="p">[(</span><span class="n">val_x</span><span class="p">,</span> <span class="n">val_y</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">())],</span>
                         <span class="n">callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">lgb</span><span class="o">.</span><span class="n">early_stopping</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)])</span>
                 <span class="n">key</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">gbm</span><span class="o">.</span><span class="n">best_score_</span><span class="p">[</span><span class="s1">&#39;valid_0&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;auc&#39;</span><span class="p">]:</span>
@@ -664,20 +705,29 @@
                 <span class="n">score</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Cannot recognize filter_metric </span><span class="si">%s</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">stage1_metric</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">score</span>
         <span class="k">except</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
-        <span class="k">return</span> <span class="n">score</span>
+            <span class="n">exit</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">_calculate_multiprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidate_features</span><span class="p">,</span> <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">data_temp</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span> <span class="o">+</span> <span class="n">val_idx</span><span class="p">]</span>
+            <span class="n">base_features</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;openfe_index&#39;</span><span class="p">}</span>
+            <span class="k">for</span> <span class="n">candidate_feature</span> <span class="ow">in</span> <span class="n">candidate_features</span><span class="p">:</span>
+                <span class="n">base_features</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">candidate_feature</span><span class="o">.</span><span class="n">get_fnode</span><span class="p">())</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_feather</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmp_save_path</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">base_features</span><span class="p">))</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;openfe_index&#39;</span><span class="p">)</span>
+            <span class="n">data_temp</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span> <span class="o">+</span> <span class="n">val_idx</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">data</span>
+            <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
             <span class="k">for</span> <span class="n">candidate_feature</span> <span class="ow">in</span> <span class="n">candidate_features</span><span class="p">:</span>
                 <span class="n">candidate_feature</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">data_temp</span><span class="p">,</span> <span class="n">is_root</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="n">candidate_feature</span><span class="o">.</span><span class="n">f_delete</span><span class="p">()</span>
                 <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidate_feature</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">results</span>
         <span class="k">except</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="n">tree_to_formula</span><span class="p">(</span><span class="n">candidate_feature</span><span class="p">))</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
             <span class="n">exit</span><span class="p">()</span>
 
@@ -686,8 +736,8 @@
         <span class="n">length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candidate_features</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span> <span class="o">/</span> <span class="mi">4</span><span class="p">))</span>
         <span class="n">n</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">candidate_features</span><span class="p">)</span> <span class="o">/</span> <span class="n">length</span><span class="p">))</span>
         <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">candidate_features</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">candidate_features</span><span class="p">:</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="c1"># for f in candidate_features:</span>
+        <span class="c1">#     f.delete()</span>
         <span class="k">with</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">n_jobs</span><span class="p">)</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
             <span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="n">n</span><span class="p">)</span> <span class="k">as</span> <span class="n">progress</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
@@ -709,19 +759,27 @@
     <span class="k">def</span> <span class="nf">_calculate_and_evaluate_multiprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidate_features</span><span class="p">,</span> <span class="n">train_idx</span><span class="p">,</span> <span class="n">val_idx</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">data_temp</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span> <span class="o">+</span> <span class="n">val_idx</span><span class="p">]</span>
-            <span class="n">train_y</span> <span class="o">=</span> <span class="n">_label</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
-            <span class="n">val_y</span> <span class="o">=</span> <span class="n">_label</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">val_idx</span><span class="p">]</span>
-            <span class="n">train_init</span> <span class="o">=</span> <span class="n">_init_scores</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
-            <span class="n">val_init</span> <span class="o">=</span> <span class="n">_init_scores</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">val_idx</span><span class="p">]</span>
+            <span class="n">base_features</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;openfe_index&#39;</span><span class="p">}</span>
+            <span class="k">for</span> <span class="n">candidate_feature</span> <span class="ow">in</span> <span class="n">candidate_features</span><span class="p">:</span>
+                <span class="n">base_features</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">candidate_feature</span><span class="o">.</span><span class="n">get_fnode</span><span class="p">())</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_feather</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmp_save_path</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">base_features</span><span class="p">))</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;openfe_index&#39;</span><span class="p">)</span>
+            <span class="n">data_temp</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span> <span class="o">+</span> <span class="n">val_idx</span><span class="p">]</span>
+            <span class="k">del</span> <span class="n">data</span>
+            <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
+
+            <span class="n">train_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
+            <span class="n">val_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">val_idx</span><span class="p">]</span>
+            <span class="n">train_init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scores</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">train_idx</span><span class="p">]</span>
+            <span class="n">val_init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_scores</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">val_idx</span><span class="p">]</span>
             <span class="n">init_metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_init_metric</span><span class="p">(</span><span class="n">val_init</span><span class="p">,</span> <span class="n">val_y</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">candidate_feature</span> <span class="ow">in</span> <span class="n">candidate_features</span><span class="p">:</span>
                 <span class="n">candidate_feature</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">data_temp</span><span class="p">,</span> <span class="n">is_root</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                 <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_evaluate</span><span class="p">(</span><span class="n">candidate_feature</span><span class="p">,</span> <span class="n">train_y</span><span class="p">,</span> <span class="n">val_y</span><span class="p">,</span> <span class="n">train_init</span><span class="p">,</span> <span class="n">val_init</span><span class="p">,</span> <span class="n">init_metric</span><span class="p">)</span>
+                <span class="n">candidate_feature</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
                 <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">candidate_feature</span><span class="p">,</span> <span class="n">score</span><span class="p">])</span>
             <span class="k">return</span> <span class="n">results</span>
         <span class="k">except</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="n">tree_to_formula</span><span class="p">(</span><span class="n">candidate_feature</span><span class="p">))</span>
             <span class="nb">print</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
             <span class="n">exit</span><span class="p">()</span>
 
@@ -748,7 +806,82 @@
                 <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
                 <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
                     <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">r</span><span class="o">.</span><span class="n">result</span><span class="p">())</span>
-        <span class="k">return</span> <span class="n">res</span></div>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="k">def</span> <span class="nf">_trans</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature</span><span class="p">,</span> <span class="n">n_train</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">base_features</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;openfe_index&#39;</span><span class="p">]</span>
+            <span class="n">base_features</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">get_fnode</span><span class="p">())</span>
+            <span class="n">_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_feather</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmp_save_path</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">base_features</span><span class="p">)</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;openfe_index&#39;</span><span class="p">)</span>
+            <span class="n">feature</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">_data</span><span class="p">,</span> <span class="n">is_root</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;category&#39;</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;object&#39;</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">feature</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">replace</span><span class="p">([</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+                <span class="c1"># feature.data = feature.data.fillna(0)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+            <span class="n">exit</span><span class="p">()</span>
+        <span class="k">return</span> <span class="p">((</span><span class="nb">str</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;category&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;object&#39;</span><span class="p">)),</span> \
+               <span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[:</span><span class="n">n_train</span><span class="p">],</span> \
+               <span class="n">feature</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">ravel</span><span class="p">()[</span><span class="n">n_train</span><span class="p">:],</span> \
+               <span class="n">tree_to_formula</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">new_features_list</span><span class="p">,</span> <span class="n">n_jobs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Transform train and test data according to new features. Since there are global operators such as</span>
+<span class="sd">        &#39;GroupByThenMean&#39;, train and test data need to be transformed together.</span>
+
+<span class="sd">        :param X_train: pd.DataFrame, the train data</span>
+<span class="sd">        :param X_test:  pd.DataFrame, the test data</span>
+<span class="sd">        :param new_features_list: the new features to transform data.</span>
+<span class="sd">        :param n_jobs: the number of processes to calculate data</span>
+<span class="sd">        :param name: used for naming new features</span>
+<span class="sd">        :return: X_train, X_test. The transformed train and test data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_features_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;openfe_index&#39;</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span><span class="o">.</span><span class="n">to_feather</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmp_save_path</span><span class="p">)</span>
+        <span class="n">n_train</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">X_train</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">myprint</span><span class="p">(</span><span class="s2">&quot;Start transforming data.&quot;</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">ProcessPoolExecutor</span><span class="p">(</span><span class="n">n_jobs</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">new_features_list</span><span class="p">:</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ex</span><span class="o">.</span><span class="n">submit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trans</span><span class="p">,</span> <span class="n">feature</span><span class="p">,</span> <span class="n">n_train</span><span class="p">))</span>
+        <span class="n">ex</span><span class="o">.</span><span class="n">shutdown</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">myprint</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Time spent calculating new features </span><span class="si">{</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">-</span><span class="n">start</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="n">_train</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">_test</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">names_map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">cat_feats</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">res</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
+            <span class="n">is_cat</span><span class="p">,</span> <span class="n">d1</span><span class="p">,</span> <span class="n">d2</span><span class="p">,</span> <span class="n">f</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+            <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;autoFE_f_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
+            <span class="n">names_map</span><span class="p">[</span><span class="s1">&#39;autoFE_f_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span> <span class="o">+</span> <span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span>
+            <span class="n">_train</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d1</span><span class="p">)</span>
+            <span class="n">_test</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">is_cat</span><span class="p">:</span> <span class="n">cat_feats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;autoFE_f_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span> <span class="o">+</span> <span class="n">name</span><span class="p">)</span>
+        <span class="n">_train</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">_train</span><span class="p">)</span>
+        <span class="n">_test</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">_test</span><span class="p">)</span>
+        <span class="n">_train</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">_train</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">names</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">X_train</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="n">_test</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">_test</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">names</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">X_test</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">_train</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cat_feats</span><span class="p">:</span>
+                <span class="n">_train</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">_train</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;category&#39;</span><span class="p">)</span>
+                <span class="n">_test</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">_test</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;category&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">_train</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">_train</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">)</span>
+                <span class="n">_test</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="o">=</span> <span class="n">_test</span><span class="p">[</span><span class="n">c</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;float&#39;</span><span class="p">)</span>
+        <span class="n">_train</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">X_train</span><span class="p">,</span> <span class="n">_train</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">_test</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">X_test</span><span class="p">,</span> <span class="n">_test</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">myprint</span><span class="p">(</span><span class="s2">&quot;Finish transformation.&quot;</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmp_save_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_train</span><span class="p">,</span> <span class="n">_test</span>
 
 
 
@@ -761,7 +894,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2022, Tianping Zhang.</p>
+    <p>&#169; Copyright 2023, Tianping Zhang.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

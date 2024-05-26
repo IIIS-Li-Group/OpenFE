@@ -17,7 +17,7 @@ from sklearn.metrics import mean_squared_error, log_loss, roc_auc_score
 import scipy.special
 from datetime import datetime
 import warnings
-warnings.filterwarnings(action='ignore', category=UserWarning)
+warnings.filterwarnings(action='ignore')
 
 
 class ForwardFeatureSelector:
@@ -234,7 +234,7 @@ class ForwardFeatureSelector:
 
     def get_estimator(self):
         if self.estimator is None:
-            params = {'n_jobs': self.n_jobs, 'importance_type': 'gain', 'n_estimators': 200}
+            params = {'n_jobs': self.n_jobs, 'importance_type': 'gain', 'n_estimators': 200, "verbose": 1 if self.verbose else -1 }
             if self.task == 'classification':
                 self.estimator = lgb.LGBMClassifier(**params)
             else:
@@ -530,7 +530,7 @@ class TwoStageFeatureSelector:
         self.myprint("Finish data processing.")
         if self.stage2_params is None:
             params = {"n_estimators": 1000, "importance_type": "gain", "num_leaves": 16,
-                      "seed": 1, "n_jobs": self.n_jobs}
+                      "seed": 1, "n_jobs": self.n_jobs, "verbose": 1 if self.verbose else -1}
         else:
             params = self.stage2_params
         if self.metric is not None:
@@ -609,7 +609,7 @@ class TwoStageFeatureSelector:
             val_x = pd.DataFrame(data_temp[candidate_feature].loc[val_y.index])
             if self.stage1_metric == 'predictive':
                 params = {"n_estimators": 100, "importance_type": "gain", "num_leaves": 16,
-                          "seed": 1, "deterministic": True, "n_jobs": 1}
+                          "seed": 1, "deterministic": True, "n_jobs": 1, "verbose": 1 if self.verbose else -1 }
                 if self.metric is not None:
                     params.update({"metric": self.metric})
                 if self.task == 'classification':

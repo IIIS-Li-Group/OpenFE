@@ -18,7 +18,7 @@ from tqdm import tqdm
 # import tracemalloc
 from datetime import datetime
 import warnings
-warnings.filterwarnings(action='ignore', category=UserWarning)
+warnings.filterwarnings(action='ignore')
 
 
 def _enumerate(current_order_num_features, lower_order_num_features,
@@ -406,7 +406,7 @@ class OpenFE:
                 label = self.label.copy()
 
                 params = {"n_estimators": 10000, "learning_rate": 0.1, "metric": self.metric,
-                          "seed": self.seed, "n_jobs": self.n_jobs}
+                          "seed": self.seed, "n_jobs": self.n_jobs, "verbose": 1 if self.verbose else -1 }
                 if self.task == "regression":
                     gbm = lgb.LGBMRegressor(**params)
                 else:
@@ -536,7 +536,7 @@ class OpenFE:
         self.myprint("Finish data processing.")
         if self.stage2_params is None:
             params = {"n_estimators": 1000, "importance_type": "gain", "num_leaves": 16,
-                      "seed": 1, "n_jobs": self.n_jobs}
+                      "seed": 1, "n_jobs": self.n_jobs, "verbose": 1 if self.verbose else -1 }
         else:
             params = self.stage2_params
         if self.metric is not None:
@@ -602,7 +602,7 @@ class OpenFE:
             val_x = pd.DataFrame(candidate_feature.data.loc[val_y.index])
             if self.stage1_metric == 'predictive':
                 params = {"n_estimators": 100, "importance_type": "gain", "num_leaves": 16,
-                          "seed": 1, "deterministic": True, "n_jobs": 1}
+                          "seed": 1, "deterministic": True, "n_jobs": 1, "verbose": 1 if self.verbose else -1 }
                 if self.metric is not None:
                     params.update({"metric": self.metric})
                 if self.task == 'classification':
